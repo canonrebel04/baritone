@@ -29,6 +29,7 @@ import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
+import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import java.util.OptionalDouble;
@@ -54,6 +55,11 @@ public class BaritoneRenderType extends RenderType {
     @Override
     public VertexFormat.Mode mode() {
         return this.renderPipeline.getVertexFormatMode();
+    }
+
+    @Override
+    public RenderPipeline pipeline() {
+        return this.renderPipeline;
     }
 
     @Override
@@ -84,7 +90,7 @@ public class BaritoneRenderType extends RenderType {
                 .writeTransform(
                     RenderSystem.getModelViewMatrix(),
                     new Vector4f(1.0F, 1.0F, 1.0F, 1.0F),
-                    RenderSystem.getModelOffset(),
+                    new Vector3f(),
                     RenderSystem.getTextureMatrix(),
                     RenderSystem.getShaderLineWidth()
                 );

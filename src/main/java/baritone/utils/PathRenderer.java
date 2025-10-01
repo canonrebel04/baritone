@@ -27,7 +27,6 @@ import baritone.behavior.PathingBehavior;
 import baritone.pathing.path.PathExecutor;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.blockentity.BeaconRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -267,28 +266,7 @@ public final class PathRenderer implements IRenderer {
                 //      inject hook into LevelRenderer#renderBlockEntities where the matrices have already been set up correctly
                 //      copy out and modify the vanilla beacon render code
                 //  also another issue on 1.21.5 is we don't have a simple method call for editing the beacon's depth test
-
-                stack.pushPose(); // push
-                stack.translate(goalPos.getX() - renderPosX, -renderPosY, goalPos.getZ() - renderPosZ); // translate
-
-                BeaconRenderer.renderBeaconBeam(
-                        stack,
-                        ctx.minecraft().renderBuffers().bufferSource(),
-                        BeaconRenderer.BEAM_LOCATION,
-                        settings.renderGoalAnimated.value ? partialTicks : 0,
-                        1.0F,
-                        settings.renderGoalAnimated.value ? ctx.world().getGameTime() : 0,
-                        (int) minY,
-                        (int) maxY,
-                        color.getRGB(),
-
-                        // Arguments filled by the private method lol
-                        0.2F,
-                        0.25F
-                );
-
-                stack.popPose(); // pop
-                return;
+//                return;
             }
 
             minX = goalPos.getX() + 0.002 - renderPosX;
