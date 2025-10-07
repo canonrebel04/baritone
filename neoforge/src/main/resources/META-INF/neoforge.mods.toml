@@ -38,3 +38,6 @@ type="required"
 versionRange="[1.21.9, 1.21.10]"
 ordering="NONE"
 side="BOTH"
+
+[[mixins]]
+config = "mixins.baritone.json"
