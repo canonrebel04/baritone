@@ -1,6 +1,14 @@
 .DS_Store
 **/*.swp
 
+# Local developer artifacts
+.vscode/
+bin/
+fabric/bin/
+scripts/__pycache__/
+*.jar
+build_log.txt
+
 run/
 autotest/
 dist/

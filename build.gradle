@@ -22,7 +22,7 @@ allprojects {
 
     archivesBaseName = rootProject.archives_base_name
 
-    /*def vers = ""
+    def vers = ""
     try {
         vers = 'git describe --always --tags --first-parent --dirty'.execute().text.trim()
     } catch (Exception e) {
@@ -34,9 +34,7 @@ allprojects {
     } else {
         version = vers.substring(1)
         println "Detected version " + version
-    }*/
-
-    version = rootProject.mod_version
+    }
     group = rootProject.maven_group
 
     sourceCompatibility = targetCompatibility = JavaVersion.toVersion(project.java_version)
@@ -88,17 +86,70 @@ allprojects {
         implementation 'com.google.code.findbugs:jsr305:3.0.2'
     }
 
-    unimined.minecraft(sourceSets.main, true) {
-        version rootProject.minecraft_version
+    // Root project uses multiple source sets; define them before applying Unimined Minecraft configs
+    // so Unimined can attach a MinecraftConfig to each relevant source set.
+    if (project == rootProject) {
+        sourceSets {
+            api {
+                compileClasspath += main.compileClasspath
+                runtimeClasspath += main.runtimeClasspath
+            }
+            main {
+                compileClasspath += api.output
+                runtimeClasspath += api.output
+            }
+            test {
+                compileClasspath += main.compileClasspath + main.runtimeClasspath + main.output
+                runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
+            }
+            launch {
+                compileClasspath += main.compileClasspath + main.runtimeClasspath + main.output
+                runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
+            }
+            schematica_api {
+                compileClasspath += main.compileClasspath
+                runtimeClasspath += main.runtimeClasspath
+            }
+            main {
+                compileClasspath += schematica_api.output
+                runtimeClasspath += schematica_api.output
+            }
+        }
 
-        mappings {
-            intermediary()
-            mojmap()
-            parchment("1.21.4", "2025.03.23")
+    }
 
-            devFallbackNamespace "official"
+    // Apply Minecraft + mappings to every source set that compiles against Minecraft.
+    // For the root project this includes api/launch/schematica_api in addition to main.
+    def applyMinecraftConfig = { SourceSet ss, boolean isPrimary ->
+        unimined.minecraft(ss, isPrimary) {
+            version rootProject.minecraft_version
+
+            if (project == rootProject) {
+                def loaders = available_loaders.split(',').collect { it.trim() }
+                if (loaders.contains('fabric')) {
+                    fabric {
+                        loader project.fabric_version
+                    }
+                }
+            }
+
+            mappings {
+                intermediary()
+                mojmap()
+                parchment("1.21.4", "2025.03.23")
+
+                devFallbackNamespace "official"
+            }
         }
     }
+
+    if (project == rootProject) {
+        applyMinecraftConfig(sourceSets.api, false)
+        applyMinecraftConfig(sourceSets.launch, false)
+        applyMinecraftConfig(sourceSets.schematica_api, false)
+        applyMinecraftConfig(sourceSets.test, false)
+    }
+    applyMinecraftConfig(sourceSets.main, true)
 
     tasks.withType(JavaCompile).configureEach {
         it.options.encoding = "UTF-8"
@@ -116,33 +167,6 @@ unimined.minecraft {
 }
 
 archivesBaseName = archivesBaseName + "-common"
-
-sourceSets {
-    api {
-        compileClasspath += main.compileClasspath
-        runtimeClasspath += main.runtimeClasspath
-    }
-    main {
-        compileClasspath += api.output
-        runtimeClasspath += api.output
-    }
-    test {
-        compileClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-        runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-    }
-    launch {
-        compileClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-        runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-    }
-    schematica_api {
-        compileClasspath += main.compileClasspath
-        runtimeClasspath += main.runtimeClasspath
-    }
-    main {
-        compileClasspath += schematica_api.output
-        runtimeClasspath += schematica_api.output
-    }
-}
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'
