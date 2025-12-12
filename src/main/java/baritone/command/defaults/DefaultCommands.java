@@ -57,6 +57,7 @@ public final class DefaultCommands {
                 new ExploreFilterCommand(baritone),
                 new ReloadAllCommand(baritone),
                 new SaveAllCommand(baritone),
+                new MetricsCommand(baritone),
                 new ExploreCommand(baritone),
                 new BlacklistCommand(baritone),
                 new FindCommand(baritone),

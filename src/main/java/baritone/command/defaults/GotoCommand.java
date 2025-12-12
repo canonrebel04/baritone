@@ -17,6 +17,7 @@
 
 package baritone.command.defaults;
 
+import baritone.Baritone;
 import baritone.api.IBaritone;
 import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
@@ -27,6 +28,7 @@ import baritone.api.command.exception.CommandException;
 import baritone.api.pathing.goals.Goal;
 import baritone.api.utils.BetterBlockPos;
 import baritone.api.utils.BlockOptionalMeta;
+import baritone.api.utils.interfaces.IGoalRenderPos;
 
 import java.util.Arrays;
 import java.util.List;
@@ -48,11 +50,34 @@ public class GotoCommand extends Command {
             BetterBlockPos origin = ctx.playerFeet();
             Goal goal = args.getDatatypePost(RelativeGoal.INSTANCE, origin);
             logDirect(String.format("Going to: %s", goal.toString()));
+
+            if (this.baritone instanceof Baritone impl && impl.getMetricsRecorder().isRunning()) {
+                impl.getMetricsRecorder().setPendingCommandContext("goto", obj -> {
+                    obj.addProperty("variant", "goal");
+                    obj.addProperty("goal_class", goal.getClass().getName());
+                    if (goal instanceof IGoalRenderPos gr) {
+                        net.minecraft.core.BlockPos gp = gr.getGoalPos();
+                        obj.addProperty("goal_x", gp.getX());
+                        obj.addProperty("goal_y", gp.getY());
+                        obj.addProperty("goal_z", gp.getZ());
+                    }
+                });
+            }
+
             baritone.getCustomGoalProcess().setGoalAndPath(goal);
             return;
         }
         args.requireMax(1);
         BlockOptionalMeta destination = args.getDatatypeFor(ForBlockOptionalMeta.INSTANCE);
+
+        if (this.baritone instanceof Baritone impl && impl.getMetricsRecorder().isRunning()) {
+            impl.getMetricsRecorder().setPendingCommandContext("goto", obj -> {
+                obj.addProperty("variant", "block");
+                obj.addProperty("block", String.valueOf(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(destination.getBlock())));
+                obj.addProperty("selector", destination.toString());
+            });
+        }
+
         baritone.getGetToBlockProcess().getToBlock(destination);
     }
 

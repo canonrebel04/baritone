@@ -87,6 +87,34 @@ There are about a hundred settings, but here are some fun / interesting / import
 - `allowDiagonalAscend`
 
 
+# Metrics (telemetry)
+
+If enabled, Baritone can write lightweight, opt-in telemetry events to a JSONL file to make real-world testing data-driven.
+
+- Output file: `<gameDir>/baritone/metrics.jsonl`
+- Commands: `#metrics status|start|stop|flush|reset|path|mark <label>`
+- Each `#metrics start` begins a new `session_id` and writes a `session_start` event.
+- `#metrics mark <label>` writes a `mark` event so you can segment runs.
+
+Notes:
+- Path attempts are correlated with `path_attempt_id` (shared by `path_start` and `path_end`).
+- If the run was triggered by `#goto` / `#follow`, the next `path_start` includes a `command` object with best-effort details.
+
+Typical capture workflow:
+
+```bash
+# In-game (chat)
+#metrics reset
+#metrics start
+#metrics mark goto_overworld_1
+#goto 100 200
+#metrics stop
+
+# On disk
+python3 scripts/metrics_summary.py /path/to/.minecraft/baritone/metrics.jsonl --by-mark
+```
+
+
 
 
 # Troubleshooting / common issues

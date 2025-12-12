@@ -526,12 +526,14 @@ public final class ElytraBehavior implements Helper {
         // Fetch the previous solution, regardless of if it's going to be used
         this.pendingSolution = null;
         if (this.solver != null) {
-            try {
-                this.pendingSolution = this.solver.get();
-            } catch (Exception ignored) {
-                // it doesn't matter if get() fails since the solution can just be recalculated synchronously
-            } finally {
-                this.solver = null;
+            if (this.solver.isDone()) {
+                try {
+                    this.pendingSolution = this.solver.get();
+                } catch (Exception ignored) {
+                    // it doesn't matter if get() fails since the solution can just be recalculated synchronously
+                } finally {
+                    this.solver = null;
+                }
             }
         }
 

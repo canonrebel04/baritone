@@ -36,6 +36,9 @@ import baritone.pathing.path.PathExecutor;
 import baritone.utils.PathRenderer;
 import baritone.utils.PathingCommandContext;
 import baritone.utils.pathing.Favoring;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -73,6 +76,13 @@ public final class PathingBehavior extends Behavior implements IPathingBehavior,
     private boolean lastAutoJump;
 
     private BetterBlockPos expectedSegmentStart;
+
+    private int metricsPathSeq;
+
+    // Sticky command context for telemetry: when a command like #goto/#follow triggers pathing,
+    // keep the command context attached to subsequent path_start events for a short time.
+    private volatile String metricsStickyCommandJson;
+    private volatile long metricsStickyCommandSetMs;
 
     private final LinkedBlockingQueue<PathEvent> toDispatch = new LinkedBlockingQueue<>();
 
@@ -454,6 +464,27 @@ public final class PathingBehavior extends Behavior implements IPathingBehavior,
 
             } else {
                 // !onGround
+                // If we're flying (creative/spectator), we may be far above the ground.
+                // Try to find a plausible walkable start below us.
+                try {
+                    if (ctx.player() != null && (ctx.player().getAbilities().flying || ctx.player().isSpectator())) {
+                        int minY = ctx.player().level().getMinY();
+                        int maxDrop = 32;
+                        for (int dy = 0; dy <= maxDrop; dy++) {
+                            BetterBlockPos candidate = new BetterBlockPos(feet.x, feet.y - dy, feet.z);
+                            if (candidate.y <= minY) {
+                                break;
+                            }
+                            if (MovementHelper.canWalkOn(ctx, candidate.below())
+                                    && MovementHelper.canWalkThrough(ctx, candidate)
+                                    && MovementHelper.canWalkThrough(ctx, candidate.above())) {
+                                return candidate;
+                            }
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+
                 // we're in the middle of a jump
                 if (MovementHelper.canWalkOn(ctx, feet.below().below())) {
                     //logDebug("Faking path start assuming player is midair and falling");
@@ -501,15 +532,183 @@ public final class PathingBehavior extends Behavior implements IPathingBehavior,
         if (!Objects.equals(pathfinder.getGoal(), goal)) { // will return the exact same object if simplification didn't happen
             logDebug("Simplifying " + goal.getClass() + " to GoalXZ due to distance");
         }
+
+        final boolean metricsOn = baritone.getMetricsRecorder().isRunning();
+        final int metricsId = ++this.metricsPathSeq;
+        final String metricsAttemptId = metricsOn ? java.util.UUID.randomUUID().toString() : null;
+        final Goal originalGoal = goal;
+        final Goal effectiveGoal = pathfinder.getGoal();
+        final boolean isPlanAhead = current != null;
+        if (metricsOn) {
+            baritone.getMetricsRecorder().record("path_start", obj -> {
+                obj.addProperty("id", metricsId);
+                if (metricsAttemptId != null) {
+                    obj.addProperty("path_attempt_id", metricsAttemptId);
+                }
+                obj.addProperty("segment", isPlanAhead ? "next" : "current");
+
+                if (ctx.player() != null) {
+                    obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                    obj.addProperty("creative", ctx.player().getAbilities().instabuild);
+                    obj.addProperty("player_on_ground", ctx.player().onGround());
+                    obj.addProperty("player_flying", ctx.player().getAbilities().flying);
+                }
+
+                obj.addProperty("start_x", start.getX());
+                obj.addProperty("start_y", start.getY());
+                obj.addProperty("start_z", start.getZ());
+
+                try {
+                    BetterBlockPos bs = new BetterBlockPos(start);
+                    obj.addProperty(
+                            "start_walkable",
+                            MovementHelper.canWalkOn(ctx, bs.below()) && MovementHelper.canWalkThrough(ctx, bs) && MovementHelper.canWalkThrough(ctx, bs.above())
+                    );
+                } catch (Throwable ignored) {
+                }
+
+                obj.addProperty("goal_class", originalGoal.getClass().getName());
+                if (originalGoal instanceof IGoalRenderPos gr) {
+                    BlockPos gp = gr.getGoalPos();
+                    obj.addProperty("goal_x", gp.getX());
+                    obj.addProperty("goal_y", gp.getY());
+                    obj.addProperty("goal_z", gp.getZ());
+                }
+
+                obj.addProperty("effective_goal_class", effectiveGoal.getClass().getName());
+                obj.addProperty("goal_simplified", !Objects.equals(effectiveGoal, originalGoal));
+                if (effectiveGoal instanceof IGoalRenderPos eg) {
+                    BlockPos gp = eg.getGoalPos();
+                    obj.addProperty("effective_goal_x", gp.getX());
+                    obj.addProperty("effective_goal_y", gp.getY());
+                    obj.addProperty("effective_goal_z", gp.getZ());
+                }
+
+                obj.addProperty("primary_timeout_ms", primaryTimeout);
+                obj.addProperty("failure_timeout_ms", failureTimeout);
+
+                // Command context (from #goto/#follow). Prefer the pending one-shot payload, but fall back
+                // to a short-lived sticky payload so later recalculations still carry attribution.
+                JsonObject cmd = baritone.getMetricsRecorder().consumePendingCommandContext();
+                if (cmd != null) {
+                    obj.add("command", cmd);
+                    try {
+                        this.metricsStickyCommandJson = cmd.toString();
+                        this.metricsStickyCommandSetMs = System.currentTimeMillis();
+                    } catch (Throwable ignored) {
+                    }
+                } else {
+                    String sticky = this.metricsStickyCommandJson;
+                    long setMs = this.metricsStickyCommandSetMs;
+                    if (sticky != null && !sticky.isBlank() && (System.currentTimeMillis() - setMs) < 120_000L) {
+                        try {
+                            obj.add("command", JsonParser.parseString(sticky).getAsJsonObject());
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                }
+
+                // If follow is active, include current targets (best-effort)
+                try {
+                    if (baritone.getFollowProcess().isActive()) {
+                        obj.addProperty("follow_active", true);
+                        java.util.List<net.minecraft.world.entity.Entity> targets = baritone.getFollowProcess().following();
+                        if (targets != null) {
+                            obj.addProperty("follow_target_count", targets.size());
+                            JsonArray arr = new JsonArray();
+                            int limit = Math.min(8, targets.size());
+                            for (int i = 0; i < limit; i++) {
+                                net.minecraft.world.entity.Entity e = targets.get(i);
+                                if (e == null) {
+                                    continue;
+                                }
+                                JsonObject t = new JsonObject();
+                                t.addProperty("uuid", String.valueOf(e.getUUID()));
+                                t.addProperty("name", String.valueOf(e.getName().getString()));
+                                t.addProperty("type", String.valueOf(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType())));
+                                arr.add(t);
+                            }
+                            obj.add("follow_targets", arr);
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            });
+        }
+
         inProgress = pathfinder;
         Baritone.getExecutor().execute(() -> {
             if (talkAboutIt) {
                 logDebug("Starting to search for path from " + start + " to " + goal);
             }
 
+            final long metricsStartNanos = System.nanoTime();
             PathCalculationResult calcResult = pathfinder.calculate(primaryTimeout, failureTimeout);
+            final long metricsElapsedMs = (System.nanoTime() - metricsStartNanos) / 1_000_000L;
             synchronized (pathPlanLock) {
                 Optional<PathExecutor> executor = calcResult.getPath().map(p -> new PathExecutor(PathingBehavior.this, p));
+
+                if (metricsOn) {
+                    final PathCalculationResult.Type type = calcResult.getType();
+                    final Optional<IPath> pathOpt = calcResult.getPath();
+                    baritone.getMetricsRecorder().record("path_end", obj -> {
+                        obj.addProperty("id", metricsId);
+                        if (metricsAttemptId != null) {
+                            obj.addProperty("path_attempt_id", metricsAttemptId);
+                        }
+                        obj.addProperty("segment", isPlanAhead ? "next" : "current");
+
+                        if (ctx.player() != null) {
+                            obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                            obj.addProperty("creative", ctx.player().getAbilities().instabuild);
+                        }
+
+                        obj.addProperty("result_type", String.valueOf(type));
+                        obj.addProperty("success", type == PathCalculationResult.Type.SUCCESS_TO_GOAL || type == PathCalculationResult.Type.SUCCESS_SEGMENT);
+                        obj.addProperty("time_ms", metricsElapsedMs);
+
+                        obj.addProperty("goal_class", originalGoal.getClass().getName());
+                        obj.addProperty("effective_goal_class", effectiveGoal.getClass().getName());
+                        obj.addProperty("goal_simplified", !Objects.equals(effectiveGoal, originalGoal));
+
+                        if (pathOpt.isPresent()) {
+                            IPath p = pathOpt.get();
+                            obj.addProperty("path_len", p.length());
+                            obj.addProperty("path_cost_ticks", p.ticksRemainingFrom(0));
+                            obj.addProperty("nodes_considered", p.getNumNodesConsidered());
+                            BetterBlockPos src = p.getSrc();
+                            BetterBlockPos dst = p.getDest();
+                            obj.addProperty("path_src_x", src.x);
+                            obj.addProperty("path_src_y", src.y);
+                            obj.addProperty("path_src_z", src.z);
+                            obj.addProperty("path_dst_x", dst.x);
+                            obj.addProperty("path_dst_y", dst.y);
+                            obj.addProperty("path_dst_z", dst.z);
+                        } else if (type == PathCalculationResult.Type.FAILURE) {
+                            // Best-effort diagnostics: where did the search get (if anywhere)?
+                            try {
+                                Optional<IPath> partial = pathfinder.bestPathSoFar();
+                                if (partial.isEmpty()) {
+                                    partial = pathfinder.pathToMostRecentNodeConsidered();
+                                }
+                                if (partial.isPresent()) {
+                                    IPath p = partial.get();
+                                    obj.addProperty("partial_path_len", p.length());
+                                    BetterBlockPos src = p.getSrc();
+                                    BetterBlockPos dst = p.getDest();
+                                    obj.addProperty("partial_src_x", src.x);
+                                    obj.addProperty("partial_src_y", src.y);
+                                    obj.addProperty("partial_src_z", src.z);
+                                    obj.addProperty("partial_dst_x", dst.x);
+                                    obj.addProperty("partial_dst_y", dst.y);
+                                    obj.addProperty("partial_dst_z", dst.z);
+                                }
+                            } catch (Throwable ignored) {
+                            }
+                        }
+                    });
+                }
+
                 if (current == null) {
                     if (executor.isPresent()) {
                         if (executor.get().getPath().positions().contains(expectedSegmentStart)) {

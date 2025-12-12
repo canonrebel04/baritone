@@ -17,6 +17,7 @@
 
 package baritone.command.defaults;
 
+import baritone.Baritone;
 import baritone.KeepName;
 import baritone.api.IBaritone;
 import baritone.api.command.Command;
@@ -27,6 +28,8 @@ import baritone.api.command.datatypes.NearbyPlayer;
 import baritone.api.command.exception.CommandErrorMessageException;
 import baritone.api.command.exception.CommandException;
 import baritone.api.command.helpers.TabCompleteHelper;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -53,6 +56,14 @@ public class FollowCommand extends Command {
         List<EntityType> classes = new ArrayList<>();
         if (args.hasExactlyOne()) {
             baritone.getFollowProcess().follow((group = args.getEnum(FollowGroup.class)).filter);
+
+            if (this.baritone instanceof Baritone impl && impl.getMetricsRecorder().isRunning()) {
+                final FollowGroup g = group;
+                impl.getMetricsRecorder().setPendingCommandContext("follow", obj -> {
+                    obj.addProperty("variant", "group");
+                    obj.addProperty("group", g.name().toLowerCase(Locale.US));
+                });
+            }
         } else {
             args.requireMin(2);
             group = null;
@@ -72,6 +83,40 @@ public class FollowCommand extends Command {
                             ? entities::contains
                             : e -> classes.stream().anyMatch(c -> e.getType().equals(c))
             );
+
+            if (this.baritone instanceof Baritone impl && impl.getMetricsRecorder().isRunning()) {
+                final FollowList l = list;
+                final List<Entity> ents = new ArrayList<>(entities);
+                final List<EntityType> types = new ArrayList<>(classes);
+                impl.getMetricsRecorder().setPendingCommandContext("follow", obj -> {
+                    obj.addProperty("variant", "list");
+                    obj.addProperty("list", l.name().toLowerCase(Locale.US));
+                    if (!types.isEmpty()) {
+                        JsonArray arr = new JsonArray();
+                        int limit = Math.min(16, types.size());
+                        for (int i = 0; i < limit; i++) {
+                            EntityType t = types.get(i);
+                            if (t == null) continue;
+                            arr.add(String.valueOf(BuiltInRegistries.ENTITY_TYPE.getKey(t)));
+                        }
+                        obj.add("entity_types", arr);
+                    }
+                    if (!ents.isEmpty()) {
+                        JsonArray arr = new JsonArray();
+                        int limit = Math.min(16, ents.size());
+                        for (int i = 0; i < limit; i++) {
+                            Entity e = ents.get(i);
+                            if (e == null) continue;
+                            JsonObject ent = new JsonObject();
+                            ent.addProperty("uuid", String.valueOf(e.getUUID()));
+                            ent.addProperty("name", String.valueOf(e.getName().getString()));
+                            ent.addProperty("type", String.valueOf(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType())));
+                            arr.add(ent);
+                        }
+                        obj.add("entities", arr);
+                    }
+                });
+            }
         }
         if (group != null) {
             logDirect(String.format("Following all %s", group.name().toLowerCase(Locale.US)));

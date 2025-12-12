@@ -71,8 +71,42 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     private ElytraBehavior behavior;
     private boolean predictingTerrain;
 
+    private boolean metricsAttemptActive;
+    private long metricsAttemptStartNanos;
+    private int metricsAttemptSeq;
+    private BlockPos metricsAttemptDestination;
+
+    private Vec3 metricsAttemptStartPos;
+    private double metricsAttemptStartDistSq;
+    private double metricsAttemptStartDistSqXZ;
+    private double metricsAttemptMinDistSq;
+    private double metricsAttemptMinDistSqXZ;
+    private int metricsAttemptMinDistTick;
+    private int metricsAttemptTicks;
+    private int metricsAttemptGlideTicks;
+    private double metricsAttemptSpeedSum;
+    private double metricsAttemptSpeedMax;
+    private double metricsAttemptSpeedSumXZ;
+    private double metricsAttemptSpeedMaxXZ;
+
+    private String metricsAttemptLostControlTo;
+    private String metricsAttemptLostControlToClass;
+    private String metricsAttemptLostControlSource;
+
     @Override
     public void onLostControl() {
+        if (this.metricsAttemptActive && this.metricsAttemptLostControlSource == null) {
+            IBaritoneProcess procThisTick = baritone.getPathingControlManager().mostRecentInControl().orElse(null);
+            if (procThisTick != null && procThisTick != this) {
+                this.metricsAttemptLostControlSource = "preempted";
+                this.metricsAttemptLostControlTo = procThisTick.displayName();
+                this.metricsAttemptLostControlToClass = procThisTick.getClass().getName();
+                logDirect("Elytra cancelled: lost control to " + this.metricsAttemptLostControlTo);
+            } else {
+                this.metricsAttemptLostControlSource = "unknown";
+            }
+        }
+        metricsFinish(false, "lostControl");
         this.state = State.START_FLYING; // TODO: null state?
         this.goingToLandingSpot = false;
         this.landingSpot = null;
@@ -125,6 +159,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         this.behavior.onTick();
 
         if (calcFailed) {
+            metricsFinish(false, "calcFailed");
             onLostControl();
             logDirect(AUTO_JUMP_FAILURE_MSG);
             return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
@@ -160,6 +195,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                     // don't be active when the user logs back in
                     this.onLostControl();
                     if (ctx.world() instanceof ClientLevel clientLevel) {
+                        metricsFinish(true, "disconnectOnArrival");
                         clientLevel.disconnect(Component.literal("[Baritone] Arrived at goal!"));
                     }
                     return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
@@ -203,6 +239,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             }
             logDirect("Done :)");
             baritone.getInputOverrideHandler().clearAllKeys();
+            metricsFinish(true, "landed");
             this.onLostControl();
             return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
         }
@@ -216,6 +253,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         if (this.state == State.LOCATE_JUMP) {
             if (shouldLandForSafety()) {
                 logDirect("Not taking off, because elytra durability or fireworks are so low that I would immediately emergency land anyway.");
+                metricsFinish(false, "safetyNoTakeoff");
                 onLostControl();
                 return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
             }
@@ -337,7 +375,256 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         if (ctx.world() != null) {
             this.behavior.repackChunks();
         }
+
+        if (!appendDestination) {
+            metricsStart(destination);
+        }
         this.behavior.pathTo();
+    }
+
+    private static Vec3 center(BlockPos pos) {
+        return new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+    }
+
+    private static double distSq(Vec3 a, Vec3 b) {
+        double dx = a.x - b.x;
+        double dy = a.y - b.y;
+        double dz = a.z - b.z;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    private static double distSqXZ(Vec3 a, Vec3 b) {
+        double dx = a.x - b.x;
+        double dz = a.z - b.z;
+        return dx * dx + dz * dz;
+    }
+
+    private void metricsStart(BlockPos destination) {
+        if (this.metricsAttemptActive) {
+            return;
+        }
+        if (!this.baritone.getMetricsRecorder().isRunning()) {
+            return;
+        }
+        this.metricsAttemptActive = true;
+        this.metricsAttemptStartNanos = System.nanoTime();
+        this.metricsAttemptDestination = destination;
+        final int id = ++this.metricsAttemptSeq;
+
+        this.metricsAttemptStartPos = ctx.player() != null ? ctx.player().position() : null;
+        this.metricsAttemptTicks = 0;
+        this.metricsAttemptGlideTicks = 0;
+        this.metricsAttemptSpeedSum = 0.0;
+        this.metricsAttemptSpeedMax = 0.0;
+        this.metricsAttemptSpeedSumXZ = 0.0;
+        this.metricsAttemptSpeedMaxXZ = 0.0;
+        this.metricsAttemptMinDistTick = -1;
+        this.metricsAttemptStartDistSq = Double.NaN;
+        this.metricsAttemptStartDistSqXZ = Double.NaN;
+        this.metricsAttemptMinDistSq = Double.POSITIVE_INFINITY;
+        this.metricsAttemptMinDistSqXZ = Double.POSITIVE_INFINITY;
+
+        this.metricsAttemptLostControlTo = null;
+        this.metricsAttemptLostControlToClass = null;
+        this.metricsAttemptLostControlSource = null;
+
+        if (this.metricsAttemptStartPos != null && destination != null) {
+            Vec3 dest = center(destination);
+            this.metricsAttemptStartDistSq = distSq(this.metricsAttemptStartPos, dest);
+            this.metricsAttemptStartDistSqXZ = distSqXZ(this.metricsAttemptStartPos, dest);
+            this.metricsAttemptMinDistSq = this.metricsAttemptStartDistSq;
+            this.metricsAttemptMinDistSqXZ = this.metricsAttemptStartDistSqXZ;
+            this.metricsAttemptMinDistTick = 0;
+        }
+
+        this.baritone.getMetricsRecorder().record("elytra_start", obj -> {
+            obj.addProperty("id", id);
+
+            if (ctx.player() != null) {
+                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                obj.addProperty("creative", ctx.player().getAbilities().instabuild);
+            }
+
+            if (destination != null) {
+                obj.addProperty("dest_x", destination.getX());
+                obj.addProperty("dest_y", destination.getY());
+                obj.addProperty("dest_z", destination.getZ());
+            }
+
+            if (this.metricsAttemptStartPos != null) {
+                obj.addProperty("start_x", this.metricsAttemptStartPos.x);
+                obj.addProperty("start_y", this.metricsAttemptStartPos.y);
+                obj.addProperty("start_z", this.metricsAttemptStartPos.z);
+            }
+            if (!Double.isNaN(this.metricsAttemptStartDistSq)) {
+                obj.addProperty("start_dist", Math.sqrt(this.metricsAttemptStartDistSq));
+            }
+            if (!Double.isNaN(this.metricsAttemptStartDistSqXZ)) {
+                obj.addProperty("start_dist_xz", Math.sqrt(this.metricsAttemptStartDistSqXZ));
+            }
+
+            obj.addProperty("seed", Baritone.settings().elytraNetherSeed.value);
+            obj.addProperty("predictTerrain", Baritone.settings().elytraPredictTerrain.value);
+            obj.addProperty("autoJump", Baritone.settings().elytraAutoJump.value);
+        });
+    }
+
+    private void metricsFinish(boolean success, String reason) {
+        if (!this.metricsAttemptActive) {
+            return;
+        }
+
+        final int id = this.metricsAttemptSeq;
+        final long elapsedMs = (System.nanoTime() - this.metricsAttemptStartNanos) / 1_000_000L;
+        final BlockPos destination = this.metricsAttemptDestination;
+
+        final Vec3 endPos = ctx.player() != null ? ctx.player().position() : null;
+        final Vec3 endMotion = ctx.player() != null ? ctx.player().getDeltaMovement() : null;
+        final int ticks = this.metricsAttemptTicks;
+        final int glideTicks = this.metricsAttemptGlideTicks;
+
+        final Vec3 startPos = this.metricsAttemptStartPos;
+        final double startDistSq = this.metricsAttemptStartDistSq;
+        final double startDistSqXZ = this.metricsAttemptStartDistSqXZ;
+        final double minDistSq = this.metricsAttemptMinDistSq;
+        final double minDistSqXZ = this.metricsAttemptMinDistSqXZ;
+        final int minDistTick = this.metricsAttemptMinDistTick;
+        final double speedMax = this.metricsAttemptSpeedMax;
+        final double speedMaxXZ = this.metricsAttemptSpeedMaxXZ;
+        final double speedSum = this.metricsAttemptSpeedSum;
+        final double speedSumXZ = this.metricsAttemptSpeedSumXZ;
+
+        final BetterBlockPos landingSpot = this.landingSpot;
+        final State stateEnd = this.state;
+
+        final String lostControlTo = this.metricsAttemptLostControlTo;
+        final String lostControlToClass = this.metricsAttemptLostControlToClass;
+        final String lostControlSource = this.metricsAttemptLostControlSource;
+
+        double endDistSqTmp = Double.NaN;
+        double endDistSqXZTmp = Double.NaN;
+        if (endPos != null && destination != null) {
+            Vec3 dest = center(destination);
+            endDistSqTmp = distSq(endPos, dest);
+            endDistSqXZTmp = distSqXZ(endPos, dest);
+        }
+        final double endDistSq = endDistSqTmp;
+        final double endDistSqXZ = endDistSqXZTmp;
+
+        double avgSpeed = ticks > 0 ? (speedSum / ticks) : Double.NaN;
+        double avgSpeedXZ = ticks > 0 ? (speedSumXZ / ticks) : Double.NaN;
+
+        final boolean overshoot = !Double.isInfinite(minDistSq)
+            && !Double.isNaN(endDistSq)
+            && Math.sqrt(minDistSq) <= 12.0
+            && (Math.sqrt(endDistSq) - Math.sqrt(minDistSq)) >= 8.0;
+
+        this.metricsAttemptActive = false;
+        this.metricsAttemptStartNanos = 0L;
+        this.metricsAttemptDestination = null;
+        this.metricsAttemptStartPos = null;
+        this.metricsAttemptStartDistSq = Double.NaN;
+        this.metricsAttemptStartDistSqXZ = Double.NaN;
+        this.metricsAttemptMinDistSq = Double.POSITIVE_INFINITY;
+        this.metricsAttemptMinDistSqXZ = Double.POSITIVE_INFINITY;
+        this.metricsAttemptMinDistTick = -1;
+        this.metricsAttemptTicks = 0;
+        this.metricsAttemptGlideTicks = 0;
+        this.metricsAttemptSpeedSum = 0.0;
+        this.metricsAttemptSpeedMax = 0.0;
+        this.metricsAttemptSpeedSumXZ = 0.0;
+        this.metricsAttemptSpeedMaxXZ = 0.0;
+
+        this.metricsAttemptLostControlTo = null;
+        this.metricsAttemptLostControlToClass = null;
+        this.metricsAttemptLostControlSource = null;
+
+        this.baritone.getMetricsRecorder().record("elytra_end", obj -> {
+            obj.addProperty("id", id);
+
+            if (ctx.player() != null) {
+                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                obj.addProperty("creative", ctx.player().getAbilities().instabuild);
+            }
+
+            obj.addProperty("success", success);
+            obj.addProperty("reason", reason);
+            if (lostControlSource != null) {
+                obj.addProperty("lost_control_source", lostControlSource);
+            }
+            if (lostControlTo != null) {
+                obj.addProperty("lost_control_to", lostControlTo);
+            }
+            if (lostControlToClass != null) {
+                obj.addProperty("lost_control_to_class", lostControlToClass);
+            }
+            obj.addProperty("time_ms", elapsedMs);
+            if (destination != null) {
+                obj.addProperty("dest_x", destination.getX());
+                obj.addProperty("dest_y", destination.getY());
+                obj.addProperty("dest_z", destination.getZ());
+            }
+
+            obj.addProperty("ticks", ticks);
+            obj.addProperty("glide_ticks", glideTicks);
+
+            if (startPos != null) {
+                obj.addProperty("start_x", startPos.x);
+                obj.addProperty("start_y", startPos.y);
+                obj.addProperty("start_z", startPos.z);
+            }
+            if (!Double.isNaN(startDistSq)) {
+                obj.addProperty("start_dist", Math.sqrt(startDistSq));
+            }
+            if (!Double.isNaN(startDistSqXZ)) {
+                obj.addProperty("start_dist_xz", Math.sqrt(startDistSqXZ));
+            }
+
+            if (endPos != null) {
+                obj.addProperty("end_x", endPos.x);
+                obj.addProperty("end_y", endPos.y);
+                obj.addProperty("end_z", endPos.z);
+            }
+            if (!Double.isNaN(endDistSq)) {
+                obj.addProperty("end_dist", Math.sqrt(endDistSq));
+            }
+            if (!Double.isNaN(endDistSqXZ)) {
+                obj.addProperty("end_dist_xz", Math.sqrt(endDistSqXZ));
+            }
+
+            if (!Double.isInfinite(minDistSq)) {
+                obj.addProperty("min_dist", Math.sqrt(minDistSq));
+            }
+            if (!Double.isInfinite(minDistSqXZ)) {
+                obj.addProperty("min_dist_xz", Math.sqrt(minDistSqXZ));
+            }
+            obj.addProperty("min_dist_tick", minDistTick);
+
+            if (!Double.isNaN(avgSpeed)) {
+                obj.addProperty("avg_speed", avgSpeed);
+            }
+            obj.addProperty("max_speed", speedMax);
+            if (!Double.isNaN(avgSpeedXZ)) {
+                obj.addProperty("avg_speed_xz", avgSpeedXZ);
+            }
+            obj.addProperty("max_speed_xz", speedMaxXZ);
+
+            if (endMotion != null) {
+                obj.addProperty("end_speed", endMotion.length());
+                obj.addProperty("end_speed_xz", endMotion.multiply(1, 0, 1).length());
+            }
+
+            obj.addProperty("overshoot", overshoot);
+            obj.addProperty("overshoot_min_le", 12.0);
+            obj.addProperty("overshoot_end_minus_min_ge", 8.0);
+
+            if (landingSpot != null) {
+                obj.addProperty("landing_x", landingSpot.x);
+                obj.addProperty("landing_y", landingSpot.y);
+                obj.addProperty("landing_z", landingSpot.z);
+            }
+            obj.addProperty("state_end", String.valueOf(stateEnd));
+        });
     }
 
     @Override
@@ -441,6 +728,49 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     public void onPostTick(TickEvent event) {
         IBaritoneProcess procThisTick = baritone.getPathingControlManager().mostRecentInControl().orElse(null);
         if (this.behavior != null && procThisTick == this) this.behavior.onPostTick(event);
+
+        if (!this.metricsAttemptActive) {
+            return;
+        }
+        if (ctx.player() == null) {
+            return;
+        }
+        BlockPos destination = this.metricsAttemptDestination;
+        if (destination == null) {
+            return;
+        }
+
+        this.metricsAttemptTicks++;
+        if (ctx.player().isFallFlying()) {
+            this.metricsAttemptGlideTicks++;
+        }
+
+        Vec3 pos = ctx.player().position();
+        Vec3 motion = ctx.player().getDeltaMovement();
+        Vec3 dest = center(destination);
+
+        double dSq = distSq(pos, dest);
+        if (dSq < this.metricsAttemptMinDistSq) {
+            this.metricsAttemptMinDistSq = dSq;
+            this.metricsAttemptMinDistTick = this.metricsAttemptTicks;
+        }
+
+        double dSqXZ = distSqXZ(pos, dest);
+        if (dSqXZ < this.metricsAttemptMinDistSqXZ) {
+            this.metricsAttemptMinDistSqXZ = dSqXZ;
+        }
+
+        double speed = motion.length();
+        this.metricsAttemptSpeedSum += speed;
+        if (speed > this.metricsAttemptSpeedMax) {
+            this.metricsAttemptSpeedMax = speed;
+        }
+
+        double speedXZ = motion.multiply(1, 0, 1).length();
+        this.metricsAttemptSpeedSumXZ += speedXZ;
+        if (speedXZ > this.metricsAttemptSpeedMaxXZ) {
+            this.metricsAttemptSpeedMaxXZ = speedXZ;
+        }
     }
 
     /**

@@ -29,6 +29,7 @@ import baritone.behavior.*;
 import baritone.cache.WorldProvider;
 import baritone.command.manager.CommandManager;
 import baritone.event.GameEventHandler;
+import baritone.metrics.MetricsRecorder;
 import baritone.process.*;
 import baritone.selection.SelectionManager;
 import baritone.utils.BlockStateInterface;
@@ -63,6 +64,7 @@ public class Baritone implements IBaritone {
 
     private final Minecraft mc;
     private final Path directory;
+    private final MetricsRecorder metricsRecorder;
 
     private final GameEventHandler gameEventHandler;
 
@@ -101,8 +103,11 @@ public class Baritone implements IBaritone {
             } catch (IOException ignored) {}
         }
 
+        this.metricsRecorder = new MetricsRecorder(this.directory);
+
         // Define this before behaviors try and get it, or else it will be null and the builds will fail!
         this.playerContext = new BaritonePlayerContext(this, mc);
+        this.metricsRecorder.setPlayerContext(this.playerContext);
 
         {
             this.lookBehavior         = this.registerBehavior(LookBehavior::new);
@@ -252,6 +257,10 @@ public class Baritone implements IBaritone {
 
     public Path getDirectory() {
         return this.directory;
+    }
+
+    public MetricsRecorder getMetricsRecorder() {
+        return this.metricsRecorder;
     }
 
     public static Settings settings() {
