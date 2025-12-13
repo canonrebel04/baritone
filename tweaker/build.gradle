@@ -23,6 +23,8 @@ plugins {
     id "com.github.johnrengelman.shadow" version "8.0.0"
 }
 
+evaluationDependsOn(":")
+
 unimined.minecraft {
     runs.client = {
         mainClass = "net.minecraft.launchwrapper.Launch"

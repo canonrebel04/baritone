@@ -56,6 +56,7 @@ import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
@@ -75,6 +76,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     private long metricsAttemptStartNanos;
     private int metricsAttemptSeq;
     private BlockPos metricsAttemptDestination;
+    private String metricsAttemptStartDimension;
 
     private Vec3 metricsAttemptStartPos;
     private double metricsAttemptStartDistSq;
@@ -93,6 +95,163 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     private String metricsAttemptLostControlToClass;
     private String metricsAttemptLostControlSource;
 
+    private boolean manualWalkOffJump;
+    private BetterBlockPos manualJumpStandPos;
+    private BetterBlockPos manualJumpOffPos;
+
+    private record JumpOffSpot(BetterBlockPos stand, BetterBlockPos off) {
+    }
+
+    private JumpOffSpot findOverworldJumpOffSpot(int radius, int minDropBlocks) {
+        if (ctx.player() == null || ctx.world() == null) {
+            return null;
+        }
+        final Level world = ctx.world();
+        final BlockPos playerBlockPos = ctx.player().blockPosition();
+        final int baseX = playerBlockPos.getX();
+        final int baseZ = playerBlockPos.getZ();
+
+        JumpOffSpot best = null;
+        double bestDistSq = Double.POSITIVE_INFINITY;
+
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                final int d2 = dx * dx + dz * dz;
+                if (d2 > radius * radius) {
+                    continue;
+                }
+
+                final int x = baseX + dx;
+                final int z = baseZ + dz;
+
+                final int y = world.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+                final BlockPos feet = new BlockPos(x, y, z);
+
+                if (!world.getBlockState(feet).isAir() || !world.getBlockState(feet.above()).isAir()) {
+                    continue;
+                }
+
+                final BlockState below = world.getBlockState(feet.below());
+                if (below.isAir() || !below.getFluidState().isEmpty()) {
+                    continue;
+                }
+
+                // Overworld guardrail: avoid choosing subterranean "jump spots" (caves) when auto-jumping.
+                if (!world.canSeeSky(feet)) {
+                    continue;
+                }
+
+                for (var dir : net.minecraft.core.Direction.Plane.HORIZONTAL) {
+                    final BlockPos off = feet.relative(dir);
+                    if (!world.getBlockState(off).isAir() || !world.getBlockState(off.above()).isAir()) {
+                        continue;
+                    }
+
+                    boolean hasDrop = true;
+                    for (int i = 1; i <= minDropBlocks; i++) {
+                        if (!world.getBlockState(off.below(i)).isAir()) {
+                            hasDrop = false;
+                            break;
+                        }
+                    }
+                    if (!hasDrop) {
+                        continue;
+                    }
+
+                    if (d2 < bestDistSq) {
+                        bestDistSq = d2;
+                        best = new JumpOffSpot(new BetterBlockPos(feet), new BetterBlockPos(off));
+                    }
+                }
+            }
+        }
+
+        return best;
+    }
+
+    private void metricsLandingSpotSelection(BetterBlockPos last, boolean pathComplete, boolean safetyLanding, BetterBlockPos chosenLandingSpot, String searchOrigin) {
+        if (!this.metricsAttemptActive) {
+            return;
+        }
+        if (!this.baritone.getMetricsRecorder().isRunning()) {
+            return;
+        }
+        try {
+            final int id = this.metricsAttemptSeq;
+            final BlockPos destination = this.metricsAttemptDestination;
+            final Vec3 playerPos = ctx.player() != null ? ctx.player().position() : null;
+            final Vec3 destPos = destination != null ? center(destination) : null;
+
+            final double playerDistXZ = (playerPos != null && destPos != null) ? Math.sqrt(distSqXZ(playerPos, destPos)) : Double.NaN;
+            final double lastToDestXZ = (last != null && destPos != null) ? Math.sqrt(distSqXZ(center(new BlockPos(last.x, last.y, last.z)), destPos)) : Double.NaN;
+            final double chosenToDestXZ = (chosenLandingSpot != null && destPos != null)
+                    ? Math.sqrt(distSqXZ(center(new BlockPos(chosenLandingSpot.x, chosenLandingSpot.y, chosenLandingSpot.z)), destPos))
+                    : Double.NaN;
+
+            this.baritone.getMetricsRecorder().record("elytra_landing_select", obj -> {
+                obj.addProperty("id", id);
+
+                if (ctx.player() != null) {
+                    obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                    obj.addProperty("creative", ctx.player().getAbilities().instabuild);
+                }
+
+                obj.addProperty("path_complete", pathComplete);
+                obj.addProperty("safety_landing", safetyLanding);
+                if (searchOrigin != null) {
+                    obj.addProperty("search_origin", searchOrigin);
+                }
+
+                if (destination != null) {
+                    obj.addProperty("dest_x", destination.getX());
+                    obj.addProperty("dest_y", destination.getY());
+                    obj.addProperty("dest_z", destination.getZ());
+                }
+                if (playerPos != null) {
+                    obj.addProperty("player_x", playerPos.x);
+                    obj.addProperty("player_y", playerPos.y);
+                    obj.addProperty("player_z", playerPos.z);
+                }
+                if (!Double.isNaN(playerDistXZ)) {
+                    obj.addProperty("player_dist_xz", playerDistXZ);
+                }
+
+                if (last != null) {
+                    obj.addProperty("last_x", last.x);
+                    obj.addProperty("last_y", last.y);
+                    obj.addProperty("last_z", last.z);
+                }
+                if (!Double.isNaN(lastToDestXZ)) {
+                    obj.addProperty("last_to_dest_dist_xz", lastToDestXZ);
+                }
+
+                obj.addProperty("landing_found", chosenLandingSpot != null);
+                if (chosenLandingSpot != null) {
+                    obj.addProperty("landing_x", chosenLandingSpot.x);
+                    obj.addProperty("landing_y", chosenLandingSpot.y);
+                    obj.addProperty("landing_z", chosenLandingSpot.z);
+                }
+                if (!Double.isNaN(chosenToDestXZ)) {
+                    obj.addProperty("landing_to_dest_dist_xz", chosenToDestXZ);
+                }
+            });
+        } catch (Throwable ignored) {
+            // must never crash gameplay
+        }
+    }
+
+    private void cancelAndCleanup() {
+        this.state = State.START_FLYING; // TODO: null state?
+        this.goingToLandingSpot = false;
+        this.landingSpot = null;
+        this.reachedGoal = false;
+        this.goal = null;
+        this.manualWalkOffJump = false;
+        this.manualJumpStandPos = null;
+        this.manualJumpOffPos = null;
+        destroyBehaviorAsync();
+    }
+
     @Override
     public void onLostControl() {
         if (this.metricsAttemptActive && this.metricsAttemptLostControlSource == null) {
@@ -103,16 +262,32 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                 this.metricsAttemptLostControlToClass = procThisTick.getClass().getName();
                 logDirect("Elytra cancelled: lost control to " + this.metricsAttemptLostControlTo);
             } else {
-                this.metricsAttemptLostControlSource = "unknown";
+                // Best-effort attribution. This is intentionally conservative (must never crash gameplay).
+                try {
+                    if (ctx.player() == null) {
+                        this.metricsAttemptLostControlSource = "noPlayer";
+                    } else if (ctx.world() == null) {
+                        this.metricsAttemptLostControlSource = "noWorld";
+                    } else if (ctx.player().isDeadOrDying()) {
+                        this.metricsAttemptLostControlSource = "dead";
+                    } else if (this.metricsAttemptStartDimension != null
+                        && !this.metricsAttemptStartDimension.equals(String.valueOf(ctx.player().level().dimension().location()))) {
+                        this.metricsAttemptLostControlSource = "leftDimension";
+                    } else if (this.metricsAttemptGlideTicks > 0 && !ctx.player().isFallFlying()) {
+                        // We were gliding for at least one tick, then stopped.
+                        this.metricsAttemptLostControlSource = "stoppedGliding";
+                    } else if (this.state == State.FLYING && !ctx.player().isFallFlying()) {
+                        this.metricsAttemptLostControlSource = "stoppedGliding";
+                    } else {
+                        this.metricsAttemptLostControlSource = "unknown";
+                    }
+                } catch (Throwable ignored) {
+                    this.metricsAttemptLostControlSource = "unknown";
+                }
             }
         }
         metricsFinish(false, "lostControl");
-        this.state = State.START_FLYING; // TODO: null state?
-        this.goingToLandingSpot = false;
-        this.landingSpot = null;
-        this.reachedGoal = false;
-        this.goal = null;
-        destroyBehaviorAsync();
+        cancelAndCleanup();
     }
 
     private ElytraProcess(Baritone baritone) {
@@ -145,10 +320,13 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
 
     @Override
     public PathingCommand onTick(boolean calcFailed, boolean isSafeToCancel) {
-        final long seedSetting = Baritone.settings().elytraNetherSeed.value;
-        if (seedSetting != this.behavior.context.getSeed()) {
-            logDirect("Nether seed changed, recalculating path");
-            this.resetState();
+        // Seed only matters when predicting terrain (and is nether-specific).
+        if (this.predictingTerrain) {
+            final long seedSetting = Baritone.settings().elytraNetherSeed.value;
+            if (seedSetting != this.behavior.context.getSeed()) {
+                logDirect("Nether seed changed, recalculating path");
+                this.resetState();
+            }
         }
         if (predictingTerrain != Baritone.settings().elytraPredictTerrain.value) {
             logDirect("elytraPredictTerrain setting changed, recalculating path");
@@ -175,16 +353,72 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             }
         }
         if (ctx.player().isFallFlying() && this.state != State.LANDING && (this.behavior.pathManager.isComplete() || safetyLanding)) {
+            final boolean pathComplete = this.behavior.pathManager.isComplete();
             final BetterBlockPos last = this.behavior.pathManager.path.getLast();
             if (last != null && (ctx.player().position().distanceToSqr(last.getCenter()) < (48 * 48) || safetyLanding) && (!goingToLandingSpot || (safetyLanding && this.landingSpot == null))) {
-                logDirect("Path complete, picking a nearby safe landing spot...");
-                BetterBlockPos landingSpot = findSafeLandingSpot(ctx.playerFeet());
-                // if this fails we will just keep orbiting the last node until we run out of rockets or the user intervenes
-                if (landingSpot != null) {
-                    this.pathTo0(landingSpot, true);
-                    this.landingSpot = landingSpot;
+                final BlockPos primaryDestination = this.metricsAttemptDestination != null ? this.metricsAttemptDestination : this.currentDestination();
+
+                // If this was triggered as a normal "path complete" (not an emergency landing), avoid selecting a landing
+                // destination too early. We want to keep gliding/orbiting until we're actually close to the goal.
+                boolean allowLandingSpotSelection = true;
+                if (!safetyLanding && primaryDestination != null) {
+                    Vec3 destPos = center(primaryDestination);
+                    double playerDistXZ = Math.sqrt(distSqXZ(ctx.player().position(), destPos));
+                    if (!Double.isNaN(playerDistXZ) && playerDistXZ > 24.0) {
+                        allowLandingSpotSelection = false;
+                    }
                 }
-                this.goingToLandingSpot = true;
+
+                if (allowLandingSpotSelection) {
+                    logDirect("Path complete, picking a nearby safe landing spot...");
+
+                    String searchOrigin = "player";
+                    BetterBlockPos landingSpot = null;
+
+                // Prefer landing spots near the last path node first. The last node is already close to the goal and
+                // tends to be much more reliable than searching near the player.
+                if (!safetyLanding) {
+                    BetterBlockPos lastStart = last.above(LANDING_COLUMN_HEIGHT);
+                    landingSpot = findSafeLandingSpot(lastStart);
+                    if (landingSpot != null) {
+                        searchOrigin = "last";
+                    }
+                }
+
+                // Secondary: search near the intended destination.
+                if (landingSpot == null && !safetyLanding && primaryDestination != null) {
+                    BetterBlockPos destStart = new BetterBlockPos(primaryDestination).above(LANDING_COLUMN_HEIGHT);
+                    landingSpot = findSafeLandingSpot(destStart);
+                    if (landingSpot != null) {
+                        searchOrigin = "dest";
+                    }
+                }
+                if (landingSpot == null) {
+                    landingSpot = findSafeLandingSpot(ctx.playerFeet());
+                    if (landingSpot != null) {
+                        searchOrigin = "player";
+                    }
+                }
+
+                    // Guardrail: never intentionally land *much farther* from the destination unless it's an emergency.
+                    if (!safetyLanding && landingSpot != null && primaryDestination != null) {
+                        Vec3 destPos = center(primaryDestination);
+                        Vec3 playerPos = ctx.player().position();
+                        double playerDistXZ = Math.sqrt(distSqXZ(playerPos, destPos));
+                        double landingDistXZ = Math.sqrt(distSqXZ(center(new BlockPos(landingSpot.x, landingSpot.y, landingSpot.z)), destPos));
+                        if (!Double.isNaN(playerDistXZ) && !Double.isNaN(landingDistXZ) && landingDistXZ > playerDistXZ + 8.0) {
+                            landingSpot = null;
+                        }
+                    }
+
+                    metricsLandingSpotSelection(last, pathComplete, safetyLanding, landingSpot, searchOrigin);
+                    // if this fails we will just keep orbiting the last node until we run out of rockets or the user intervenes
+                    if (landingSpot != null) {
+                        this.pathTo0(landingSpot, true);
+                        this.landingSpot = landingSpot;
+                    }
+                    this.goingToLandingSpot = true;
+                }
             }
 
             if (last != null && ctx.player().position().distanceToSqr(last.getCenter()) < 1) {
@@ -226,6 +460,10 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         }
 
         if (ctx.player().isFallFlying()) {
+            // We are actively gliding; reflect that in the state machine.
+            if (this.state == State.START_FLYING) {
+                this.state = State.FLYING;
+            }
             behavior.landingMode = this.state == State.LANDING;
             this.goal = null;
             baritone.getInputOverrideHandler().clearAllKeys();
@@ -257,6 +495,27 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                 onLostControl();
                 return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
             }
+
+            // Overworld: do NOT use the legacy "GoalYLevel(31)" jump search.
+            // It tends to pick caves/holes because it only cares about finding a fall movement.
+            if (ctx.player() != null && ctx.player().level().dimension() != Level.NETHER) {
+                if (!this.manualWalkOffJump || this.goal == null || !(this.goal instanceof GoalBlock)) {
+                    final JumpOffSpot spot = findOverworldJumpOffSpot(24, 3);
+                    if (spot == null) {
+                        logDirect("Couldn't find a safe jump-off ledge nearby (surface/open sky). Try moving to a cliff/ledge, or disable elytraAutoJump and start gliding manually.");
+                        metricsFinish(false, "noJumpSpot");
+                        onLostControl();
+                        return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
+                    }
+                    this.manualWalkOffJump = true;
+                    this.manualJumpStandPos = spot.stand();
+                    this.manualJumpOffPos = spot.off();
+                    this.goal = new GoalBlock(spot.stand().x, spot.stand().y, spot.stand().z);
+                }
+                this.state = State.GET_TO_JUMP;
+                return new PathingCommandContext(this.goal, PathingCommandType.SET_GOAL_AND_PATH, new WalkOffCalculationContext(baritone));
+            }
+
             if (this.goal == null) {
                 this.goal = new GoalYLevel(31);
             }
@@ -298,13 +557,30 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             final IPathExecutor executor = baritone.getPathingBehavior().getCurrent();
             // TODO 1.21.5: replace `ctx.player().getDeltaMovement().y < -0.377` with `ctx.player().fallDistance > 1.0f`
             final boolean canStartFlying = ctx.player().getDeltaMovement().y < -0.377
-                    && !isSafeToCancel
-                    && executor != null
-                    && executor.getPath().movements().get(executor.getPosition()) instanceof MovementFall;
+                    && (this.manualWalkOffJump || (executor != null && executor.getPath().movements().get(executor.getPosition()) instanceof MovementFall));
+
+            if (this.manualWalkOffJump) {
+                if (this.manualJumpStandPos != null && ctx.player().position().distanceToSqr(this.manualJumpStandPos.getCenter()) < 1.0 && ctx.player().onGround()) {
+                    if (this.manualJumpOffPos != null) {
+                        Vec3 from = ctx.player().position();
+                        Vec3 to = new Vec3(((double) this.manualJumpOffPos.x) + 0.5, from.y, ((double) this.manualJumpOffPos.z) + 0.5);
+                        Rotation rotation = RotationUtils.calcRotationFromVec3d(from, to, ctx.playerRotations());
+                        baritone.getLookBehavior().updateTarget(new Rotation(rotation.getYaw(), 0), false);
+                    }
+                    baritone.getInputOverrideHandler().setInputForceState(Input.MOVE_FORWARD, true);
+                    return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
+                }
+            }
 
             if (canStartFlying) {
                 this.state = State.START_FLYING;
+                this.manualWalkOffJump = false;
+                this.manualJumpStandPos = null;
+                this.manualJumpOffPos = null;
             } else {
+                if (this.manualWalkOffJump) {
+                    return new PathingCommandContext(this.goal, PathingCommandType.SET_GOAL_AND_PATH, new WalkOffCalculationContext(baritone));
+                }
                 return new PathingCommand(null, PathingCommandType.SET_GOAL_AND_PATH);
             }
         }
@@ -366,10 +642,30 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     }
 
     private void pathTo0(BlockPos destination, boolean appendDestination) {
-        if (ctx.player() == null || ctx.player().level().dimension() != Level.NETHER) {
+        if (ctx.player() == null) {
             return;
         }
-        this.onLostControl();
+
+        // Terrain prediction is nether-specific (seed/generation). Allow other dimensions only when using live chunk data.
+        if (Baritone.settings().elytraPredictTerrain.value && ctx.player().level().dimension() != Level.NETHER) {
+            logDirect("Elytra terrain prediction is nether-only. Set elytraPredictTerrain=false to use Elytra outside the nether.");
+            if (this.metricsAttemptActive) {
+                metricsFinish(false, "disallowedDimension");
+            }
+            cancelAndCleanup();
+            return;
+        }
+
+        // We use appendDestination=true for internal reroutes (e.g. landing spot selection).
+        // Those should not terminate the active telemetry attempt as a "lostControl" failure.
+        if (appendDestination) {
+            destroyBehaviorAsync();
+        } else {
+            if (this.metricsAttemptActive) {
+                metricsFinish(false, "restart");
+            }
+            cancelAndCleanup();
+        }
         this.predictingTerrain = Baritone.settings().elytraPredictTerrain.value;
         this.behavior = new ElytraBehavior(this.baritone, this, destination, appendDestination);
         if (ctx.world() != null) {
@@ -409,6 +705,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         this.metricsAttemptActive = true;
         this.metricsAttemptStartNanos = System.nanoTime();
         this.metricsAttemptDestination = destination;
+        this.metricsAttemptStartDimension = ctx.player() != null ? String.valueOf(ctx.player().level().dimension().location()) : null;
         final int id = ++this.metricsAttemptSeq;
 
         this.metricsAttemptStartPos = ctx.player() != null ? ctx.player().position() : null;
@@ -497,6 +794,9 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         final BetterBlockPos landingSpot = this.landingSpot;
         final State stateEnd = this.state;
 
+        final boolean playerFallFlyingEnd = ctx.player() != null && ctx.player().isFallFlying();
+        final boolean playerOnGroundEnd = ctx.player() != null && ctx.player().onGround();
+
         final String lostControlTo = this.metricsAttemptLostControlTo;
         final String lostControlToClass = this.metricsAttemptLostControlToClass;
         final String lostControlSource = this.metricsAttemptLostControlSource;
@@ -522,6 +822,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         this.metricsAttemptActive = false;
         this.metricsAttemptStartNanos = 0L;
         this.metricsAttemptDestination = null;
+        this.metricsAttemptStartDimension = null;
         this.metricsAttemptStartPos = null;
         this.metricsAttemptStartDistSq = Double.NaN;
         this.metricsAttemptStartDistSqXZ = Double.NaN;
@@ -618,6 +919,9 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             obj.addProperty("overshoot_min_le", 12.0);
             obj.addProperty("overshoot_end_minus_min_ge", 8.0);
 
+            obj.addProperty("player_flying_end", playerFallFlyingEnd);
+            obj.addProperty("player_on_ground_end", playerOnGroundEnd);
+
             if (landingSpot != null) {
                 obj.addProperty("landing_x", landingSpot.x);
                 obj.addProperty("landing_y", landingSpot.y);
@@ -704,8 +1008,9 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     @Override
     public void onWorldEvent(WorldEvent event) {
         if (event.getWorld() != null && event.getState() == EventState.POST) {
-            // Exiting the world, just destroy
-            destroyBehaviorAsync();
+            // Exiting the world: finalize telemetry (best-effort) and cleanup.
+            metricsFinish(false, "worldExit");
+            cancelAndCleanup();
         }
     }
 

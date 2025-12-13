@@ -9,6 +9,10 @@ scripts/__pycache__/
 *.jar
 build_log.txt
 
+# Telemetry captures (local)
+metrics.jsonl
+PHASE*_TELEMETRY_REPORT.md
+
 run/
 autotest/
 dist/
@@ -50,5 +54,3 @@ mapping
 
 libs/lwjgl-platform-2.9.4-nightly-20150209-natives-osx.jar
 libs/java-objc-bridge-1.1.jar
-
-mapping

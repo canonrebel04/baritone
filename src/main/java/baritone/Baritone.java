@@ -30,6 +30,7 @@ import baritone.cache.WorldProvider;
 import baritone.command.manager.CommandManager;
 import baritone.event.GameEventHandler;
 import baritone.metrics.MetricsRecorder;
+import baritone.metrics.MetricsRouteRunner;
 import baritone.process.*;
 import baritone.selection.SelectionManager;
 import baritone.utils.BlockStateInterface;
@@ -72,6 +73,7 @@ public class Baritone implements IBaritone {
     private final LookBehavior lookBehavior;
     private final InventoryBehavior inventoryBehavior;
     private final InputOverrideHandler inputOverrideHandler;
+    private final MetricsRouteRunner metricsRouteRunner;
 
     private final FollowProcess followProcess;
     private final MineProcess mineProcess;
@@ -115,6 +117,7 @@ public class Baritone implements IBaritone {
             this.inventoryBehavior    = this.registerBehavior(InventoryBehavior::new);
             this.inputOverrideHandler = this.registerBehavior(InputOverrideHandler::new);
             this.registerBehavior(WaypointBehavior::new);
+            this.metricsRouteRunner   = this.registerBehavior(MetricsRouteRunner::new);
         }
 
         this.pathingControlManager = new PathingControlManager(this);
@@ -261,6 +264,10 @@ public class Baritone implements IBaritone {
 
     public MetricsRecorder getMetricsRecorder() {
         return this.metricsRecorder;
+    }
+
+    public MetricsRouteRunner getMetricsRouteRunner() {
+        return this.metricsRouteRunner;
     }
 
     public static Settings settings() {

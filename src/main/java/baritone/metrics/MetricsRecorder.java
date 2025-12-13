@@ -97,6 +97,8 @@ public final class MetricsRecorder {
             this.writer = null;
         }
         this.sessionId = null;
+        this.eventsWritten.set(0L);
+        this.pendingCommandContextJson = null;
         Files.deleteIfExists(this.file);
     }
 

@@ -8,11 +8,13 @@ import baritone.api.command.exception.CommandException;
 import baritone.api.command.exception.CommandInvalidStateException;
 import baritone.api.command.exception.CommandInvalidTypeException;
 import baritone.metrics.MetricsRecorder;
+import baritone.metrics.MetricsRouteRunner;
 
 import net.minecraft.SharedConstants;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -27,14 +29,13 @@ public final class MetricsCommand extends Command {
 
     @Override
     public void execute(String label, IArgConsumer args) throws CommandException {
-        args.requireMax(2);
-
         MetricsRecorder recorder = getRecorder();
         String action = args.hasAny() ? args.getString().toLowerCase(Locale.US) : "status";
 
         try {
             switch (action) {
                 case "start" -> {
+                    args.requireMax(0);
                     final boolean started = recorder.start();
                     logDirect("Metrics recording: ON");
                     logDirect("File: " + recorder.getFile().toAbsolutePath());
@@ -61,22 +62,27 @@ public final class MetricsCommand extends Command {
                     }
                 }
                 case "stop" -> {
+                    args.requireMax(0);
                     recorder.stop();
                     logDirect("Metrics recording: OFF");
                 }
                 case "flush" -> {
+                    args.requireMax(0);
                     recorder.flush();
                     logDirect("Flushed");
                 }
                 case "reset" -> {
+                    args.requireMax(0);
                     recorder.reset();
                     logDirect("Reset (file deleted): " + recorder.getFile().toAbsolutePath());
                 }
                 case "path" -> {
+                    args.requireMax(0);
                     Path p = recorder.getFile().toAbsolutePath();
                     logDirect("File: " + p);
                 }
                 case "status" -> {
+                    args.requireMax(0);
                     logDirect("Metrics recording: " + (recorder.isRunning() ? "ON" : "OFF"));
                     logDirect("File: " + recorder.getFile().toAbsolutePath());
                     if (recorder.getSessionId() != null) {
@@ -88,6 +94,7 @@ public final class MetricsCommand extends Command {
                     if (!recorder.isRunning()) {
                         throw new CommandInvalidStateException("Metrics recording is OFF (use #metrics start)");
                     }
+                    args.requireExactly(1);
                     final String markLabel = args.getString();
                     recorder.record("mark", obj -> {
                         obj.addProperty("label", markLabel);
@@ -98,7 +105,64 @@ public final class MetricsCommand extends Command {
                     });
                     logDirect("Mark: " + markLabel);
                 }
-                default -> throw new CommandInvalidTypeException(args.consumed(), "one of start|stop|flush|reset|status|path|mark");
+                case "route" -> {
+                    if (!(this.baritone instanceof Baritone impl)) {
+                        throw new CommandInvalidStateException("Metrics route is only available in the built-in Baritone implementation");
+                    }
+
+                    // Accept: metrics route <x1> <z1> [<x2> <z2> ...]
+                    if (!args.hasAny()) {
+                        throw new CommandInvalidStateException("Usage: #metrics route <x1> <z1> [<x2> <z2> ...]");
+                    }
+
+                    List<Integer> coords = new ArrayList<>();
+                    while (args.hasAny()) {
+                        coords.add(args.getAs(Integer.class));
+                    }
+
+                    List<baritone.api.pathing.goals.Goal> goals;
+                    try {
+                        goals = MetricsRouteRunner.parseRouteXZ(coords);
+                    } catch (IllegalArgumentException ex) {
+                        throw new CommandInvalidStateException(ex.getMessage());
+                    }
+
+                    // Run in one go: reset -> start -> route runner handles marks + goals + elytra -> stop
+                    impl.getMetricsRouteRunner().stopRoute("restarting");
+
+                    // Ensure this route run starts from a clean Baritone state.
+                    // Do this before resetting metrics so any cancellation events don't end up in the new file.
+                    impl.getPathingBehavior().cancelEverything();
+
+                    recorder.reset();
+                    final boolean started = recorder.start();
+                    logDirect("Metrics recording: ON");
+                    logDirect("File: " + recorder.getFile().toAbsolutePath());
+                    if (recorder.getSessionId() != null) {
+                        logDirect("Session: " + recorder.getSessionId());
+                    }
+                    if (started) {
+                        recorder.record("session_start", obj -> {
+                            obj.addProperty("mc_version", SharedConstants.getCurrentVersion().name());
+                            obj.addProperty("baritone_version", baritoneVersion());
+
+                            obj.addProperty("setting_primaryTimeoutMS", Baritone.settings().primaryTimeoutMS.value);
+                            obj.addProperty("setting_failureTimeoutMS", Baritone.settings().failureTimeoutMS.value);
+                            obj.addProperty("setting_planAheadPrimaryTimeoutMS", Baritone.settings().planAheadPrimaryTimeoutMS.value);
+                            obj.addProperty("setting_planAheadFailureTimeoutMS", Baritone.settings().planAheadFailureTimeoutMS.value);
+                            obj.addProperty("setting_elytraPredictTerrain", Baritone.settings().elytraPredictTerrain.value);
+                            obj.addProperty("setting_elytraTermsAccepted", Baritone.settings().elytraTermsAccepted.value);
+
+                            if (ctx.player() != null) {
+                                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                                obj.addProperty("creative", ctx.player().getAbilities().instabuild);
+                            }
+                        });
+                    }
+
+                    impl.getMetricsRouteRunner().startRoute(goals);
+                }
+                default -> throw new CommandInvalidTypeException(args.consumed(), "one of start|stop|flush|reset|status|path|mark|route");
             }
         } catch (IOException e) {
             throw new CommandInvalidStateException("I/O error: " + e.getMessage());
@@ -115,7 +179,7 @@ public final class MetricsCommand extends Command {
     @Override
     public Stream<String> tabComplete(String label, IArgConsumer args) {
         if (args.hasExactlyOne()) {
-            return Stream.of("start", "stop", "flush", "reset", "status", "path", "mark");
+            return Stream.of("start", "stop", "flush", "reset", "status", "path", "mark", "route");
         }
         return Stream.empty();
     }
@@ -137,7 +201,9 @@ public final class MetricsCommand extends Command {
                 "> metrics flush - Flush buffered output",
                 "> metrics reset - Delete the metrics file",
                 "> metrics path - Print output file path",
-                "> metrics mark <label> - Write a marker event (to segment runs)"
+                "> metrics mark <label> - Write a marker event (to segment runs)",
+                "> metrics route <x1> <z1> [<x2> <z2> ...] - Reset/start, then run elytra flights with auto marks (fly_1, fly_2, ...)",
+                "  (Note: for overworld, set elytraPredictTerrain=false.)"
         );
     }
 

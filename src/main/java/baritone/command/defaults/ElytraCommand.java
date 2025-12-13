@@ -33,7 +33,6 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.level.Level;
 
 import java.util.Arrays;
 import java.util.List;
@@ -70,9 +69,6 @@ public class ElytraCommand extends Command {
             Goal iGoal = customGoalProcess.mostRecentGoal();
             if (iGoal == null) {
                 throw new CommandInvalidStateException("No goal has been set");
-            }
-            if (ctx.world().dimension() != Level.NETHER) {
-                throw new CommandInvalidStateException("Only works in the nether");
             }
             try {
                 elytra.pathTo(iGoal);
@@ -202,7 +198,8 @@ public class ElytraCommand extends Command {
     @Override
     public List<String> getLongDesc() {
         return Arrays.asList(
-                "The elytra command tells baritone to, in the nether, automatically fly to the current goal.",
+                "The elytra command tells baritone to automatically fly to the current goal.",
+                "(Note: elytraPredictTerrain is nether-only; set it to false for overworld.)",
                 "",
                 "Usage:",
                 "> elytra - fly to the current goal",

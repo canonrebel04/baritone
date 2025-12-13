@@ -104,9 +104,25 @@ class ElytraEnd:
     ticks: Optional[int]
     glide_ticks: Optional[int]
     min_dist: Optional[float]
+    min_dist_xz: Optional[float]
     end_dist: Optional[float]
+    end_dist_xz: Optional[float]
     avg_speed: Optional[float]
     max_speed: Optional[float]
+    dimension: str
+    creative: Optional[bool]
+    mark: str
+
+
+@dataclass
+class ElytraLandingSelect:
+    path_complete: Optional[bool]
+    safety_landing: Optional[bool]
+    landing_found: Optional[bool]
+    search_origin: str
+    player_dist_xz: Optional[float]
+    last_to_dest_dist_xz: Optional[float]
+    landing_to_dest_dist_xz: Optional[float]
     dimension: str
     creative: Optional[bool]
     mark: str
@@ -184,6 +200,7 @@ def main() -> int:
     counts: Counter[str] = Counter()
     path_ends: list[PathEnd] = []
     elytra_ends: list[ElytraEnd] = []
+    elytra_landing_selects: list[ElytraLandingSelect] = []
     marks: list[Mark] = []
     session_starts: list[SessionStart] = []
     session_ids: set[str] = set()
@@ -334,9 +351,26 @@ def main() -> int:
                     ticks=_as_int(obj.get("ticks")),
                     glide_ticks=_as_int(obj.get("glide_ticks")),
                     min_dist=_as_float(obj.get("min_dist")),
+                    min_dist_xz=_as_float(obj.get("min_dist_xz")),
                     end_dist=_as_float(obj.get("end_dist")),
+                    end_dist_xz=_as_float(obj.get("end_dist_xz")),
                     avg_speed=_as_float(obj.get("avg_speed")),
                     max_speed=_as_float(obj.get("max_speed")),
+                    dimension=str(obj.get("dimension", "")) or "-",
+                    creative=(obj.get("creative") if isinstance(obj.get("creative"), bool) else None),
+                    mark=active_mark,
+                )
+            )
+        elif typ == "elytra_landing_select":
+            elytra_landing_selects.append(
+                ElytraLandingSelect(
+                    path_complete=(obj.get("path_complete") if isinstance(obj.get("path_complete"), bool) else None),
+                    safety_landing=(obj.get("safety_landing") if isinstance(obj.get("safety_landing"), bool) else None),
+                    landing_found=(obj.get("landing_found") if isinstance(obj.get("landing_found"), bool) else None),
+                    search_origin=str(obj.get("search_origin", "")) or "-",
+                    player_dist_xz=_as_float(obj.get("player_dist_xz")),
+                    last_to_dest_dist_xz=_as_float(obj.get("last_to_dest_dist_xz")),
+                    landing_to_dest_dist_xz=_as_float(obj.get("landing_to_dest_dist_xz")),
                     dimension=str(obj.get("dimension", "")) or "-",
                     creative=(obj.get("creative") if isinstance(obj.get("creative"), bool) else None),
                     mark=active_mark,
@@ -525,15 +559,17 @@ def main() -> int:
 
     if elytra_ends:
         print("Elytra (elytra_end):")
+        arrived_xz_threshold = 12.0
         total = len(elytra_ends)
         ok = sum(1 for e in elytra_ends if e.success)
+        arrived_xz = sum(1 for e in elytra_ends if e.min_dist_xz is not None and e.min_dist_xz <= arrived_xz_threshold)
         overs = sum(1 for e in elytra_ends if e.overshoot is True)
         times = [e.time_ms for e in elytra_ends if e.time_ms is not None]
         times_f = [float(t) for t in times if t is not None]
         ticks = [e.ticks for e in elytra_ends if e.ticks is not None]
         ticks_f = [float(t) for t in ticks if t is not None]
         print(
-            f"  total={total} success={_pct(ok, total)} ({ok}/{total})  overshoot={_pct(overs, total)} ({overs}/{total})\n"
+            f"  total={total} success={_pct(ok, total)} ({ok}/{total})  arrived_xz≤{arrived_xz_threshold:g}={_pct(arrived_xz, total)} ({arrived_xz}/{total})  overshoot={_pct(overs, total)} ({overs}/{total})\n"
             f"  time({ _group_stats(times_f) })  ticks(median={_fmt_num(_median(ticks_f))})"
         )
 
@@ -588,11 +624,53 @@ def main() -> int:
                 for key, rows in sorted(by_mark.items(), key=lambda kv: len(kv[1]), reverse=True)[: max(args.top, 12)]:
                     total_m = len(rows)
                     ok_m = sum(1 for e in rows if e.success)
+                    arrived_xz_m = sum(1 for e in rows if e.min_dist_xz is not None and e.min_dist_xz <= arrived_xz_threshold)
                     overs_m = sum(1 for e in rows if e.overshoot is True)
                     t = [e.time_ms for e in rows if e.time_ms is not None]
                     t_f = [float(x) for x in t if x is not None]
                     print(
-                        f"    {key}: n={total_m} success={_pct(ok_m, total_m)}  overshoot={_pct(overs_m, total_m)}  time({ _group_stats(t_f) })"
+                        f"    {key}: n={total_m} success={_pct(ok_m, total_m)}  arrived_xz={_pct(arrived_xz_m, total_m)}  overshoot={_pct(overs_m, total_m)}  time({ _group_stats(t_f) })"
+                    )
+
+    if elytra_landing_selects:
+        print()
+        print("Elytra landing selection (elytra_landing_select):")
+        total = len(elytra_landing_selects)
+        found = sum(1 for e in elytra_landing_selects if e.landing_found is True)
+
+        player_d = [e.player_dist_xz for e in elytra_landing_selects if e.player_dist_xz is not None]
+        last_d = [e.last_to_dest_dist_xz for e in elytra_landing_selects if e.last_to_dest_dist_xz is not None]
+        land_d = [e.landing_to_dest_dist_xz for e in elytra_landing_selects if e.landing_to_dest_dist_xz is not None]
+
+        print(
+            f"  total={total} landing_found={_pct(found, total)} ({found}/{total})\n"
+            f"  player_dist_xz(median={_fmt_num(_median(player_d))})  last_to_dest_dist_xz(median={_fmt_num(_median(last_d))})  landing_to_dest_dist_xz(median={_fmt_num(_median(land_d))})"
+        )
+
+        by_trigger: Counter[str] = Counter()
+        for e in elytra_landing_selects:
+            pc = "?" if e.path_complete is None else ("true" if e.path_complete else "false")
+            sl = "?" if e.safety_landing is None else ("true" if e.safety_landing else "false")
+            by_trigger[f"path_complete={pc} safety_landing={sl} origin={e.search_origin}"] += 1
+        if by_trigger:
+            print("  Top triggers:")
+            for key, cnt in by_trigger.most_common(args.top):
+                print(f"    {cnt}  {key}")
+
+        if args.by_mark:
+            mark_rows = [e for e in elytra_landing_selects if e.mark and e.mark != "-"]
+            if mark_rows:
+                by_mark: dict[str, list[ElytraLandingSelect]] = defaultdict(list)
+                for e in mark_rows:
+                    by_mark[e.mark].append(e)
+                print("  By mark label (elytra_landing_select):")
+                for key, rows in sorted(by_mark.items(), key=lambda kv: len(kv[1]), reverse=True)[: max(args.top, 12)]:
+                    total_m = len(rows)
+                    found_m = sum(1 for e in rows if e.landing_found is True)
+                    player_d_m = [e.player_dist_xz for e in rows if e.player_dist_xz is not None]
+                    land_d_m = [e.landing_to_dest_dist_xz for e in rows if e.landing_to_dest_dist_xz is not None]
+                    print(
+                        f"    {key}: n={total_m} landing_found={_pct(found_m, total_m)}  player_dist_xz(med={_fmt_num(_median(player_d_m))})  landing_to_dest_dist_xz(med={_fmt_num(_median(land_d_m))})"
                     )
 
     return 0
