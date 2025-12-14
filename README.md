@@ -1,135 +1,191 @@
-# Baritone
+# Baritone - Meteor Client Integration Fork
 
-[![GitHub All Releases](https://img.shields.io/github/downloads/cabaletta/baritone/total.svg)](https://github.com/cabaletta/baritone/releases/)
+A fork of [Baritone](https://github.com/cabaletta/baritone) optimized for seamless integration with Meteor Client, featuring enhanced pathfinding, automation capabilities, and intelligent navigation systems.
 
-[![Minecraft](https://img.shields.io/badge/MC-1.12.2-brightgreen.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.13.2-yellow.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.14.4-yellow.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.15.2-yellow.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.16.5-yellow.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.17.1-yellow.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.18.2-yellow.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.19.2-brightgreen.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.19.4-brightgreen.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.20.1-brightgreen.svg)](#Baritone)
-[![Minecraft](https://img.shields.io/badge/MC-1.21.3-brightgreen.svg)](#Baritone)
+## 🌟 Features
 
-[![Build Status](https://travis-ci.com/cabaletta/baritone.svg?branch=master)](https://travis-ci.com/cabaletta/baritone/)
-[![Release](https://img.shields.io/github/release/cabaletta/baritone.svg)](https://github.com/cabaletta/baritone/releases/)
-[![License](https://img.shields.io/badge/license-LGPL--3.0%20with%20anime%20exception-green.svg)](LICENSE)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/cadab857dab049438b6e28b3cfc5570e)](https://www.codacy.com/gh/cabaletta/baritone/dashboard?utm_source=github.com&utm_medium=referral&utm_content=cabaletta/baritone&utm_campaign=Badge_Grade)
-[![Code of Conduct](https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat)](https://github.com/cabaletta/baritone/blob/master/CODE_OF_CONDUCT.md)
-[![Known Vulnerabilities](https://snyk.io/test/github/cabaletta/baritone/badge.svg?targetFile=build.gradle)](https://snyk.io/test/github/cabaletta/baritone?targetFile=build.gradle)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/cabaletta/baritone/issues/)
-[![Issues](https://img.shields.io/github/issues/cabaletta/baritone.svg)](https://github.com/cabaletta/baritone/issues/)
-[![GitHub issues-closed](https://img.shields.io/github/issues-closed/cabaletta/baritone.svg)](https://github.com/cabaletta/baritone/issues?q=is%3Aissue+is%3Aclosed)
-[![Pull Requests](https://img.shields.io/github/issues-pr/cabaletta/baritone.svg)](https://github.com/cabaletta/baritone/pulls/)
-[![GitHub contributors](https://img.shields.io/github/contributors/cabaletta/baritone.svg)](https://github.com/cabaletta/baritone/graphs/contributors/)
-[![GitHub commits](https://img.shields.io/github/commits-since/cabaletta/baritone/v1.0.0.svg)](https://github.com/cabaletta/baritone/commit/)
-![Code size](https://img.shields.io/github/languages/code-size/cabaletta/baritone.svg)
-![GitHub repo size](https://img.shields.io/github/repo-size/cabaletta/baritone.svg)
-![Lines of Code](https://tokei.rs/b1/github/cabaletta/baritone?category=code&style=flat)
-![yes](https://img.shields.io/badge/Badges-36-blue.svg)
+### Core Baritone
 
-[![Impact integration](https://img.shields.io/badge/Impact%20integration-v1.2.14%20/%20v1.3.8%20/%20v1.4.6%20/%20v1.5.3%20/%20v1.6.3-brightgreen.svg)](https://impactclient.net/)
-[![Lambda integration](https://img.shields.io/badge/Lambda%20integration-v1.2.17-brightgreen.svg)](https://github.com/lambda-client/lambda)
-[![ForgeHax integration](https://img.shields.io/badge/ForgeHax%20%22integration%22-scuffed-yellow.svg)](https://github.com/fr1kin/ForgeHax/)
-[![Aristois add-on integration](https://img.shields.io/badge/Aristois%20add--on%20integration-v1.6.3-green.svg)](https://aristois.net/)
-[![rootNET integration](https://img.shields.io/badge/rootNET%20integration-v1.2.14-green.svg)](https://rootnet.dev/)
-[![Future integration](https://img.shields.io/badge/Future%20integration-v1.2.12%20%2F%20v1.3.6%20%2F%20v1.4.4-red)](https://futureclient.net/)
-[![RusherHack integration](https://img.shields.io/badge/RusherHack%20integration-v1.2.14-green)](https://rusherhack.org/)
+- **Intelligent Pathfinding**: Advanced A\* pathfinding with cost optimization
+- **Mining Automation**: `#mine <block>` - Efficient ore/block mining with optimal pathing
+- **Exploration**: `#explore` - Systematic terrain exploration
+- **Following**: `#follow entity <name>` - Follow players or entities
+- **Building**: `#build <schematic>` - Automated structure building
 
-[![forthebadge](https://web.archive.org/web/20230604002050/https://forthebadge.com/images/badges/built-with-swag.svg)](http://forthebadge.com/)
-[![forthebadge](https://web.archive.org/web/20230604002050/https://forthebadge.com/images/badges/mom-made-pizza-rolls.svg)](http://forthebadge.com/)
+### Meteor Integration Enhancements
 
-A Minecraft pathfinder bot.
+- **Settings GUI**: In-game interface for all Baritone settings (no config file editing)
+- **Path Visualization**: Real-time path rendering with cost estimates and ETA
+- **Task Actions**: Quick access buttons for common tasks
+- **Safe Mode**: Conservative settings preset for dangerous scenarios
+- **Recovery System**: Automatic handling of stuck states and failures
 
-Baritone is the pathfinding system used in [Impact](https://impactclient.net/) since 4.4. [Here's](https://www.youtube.com/watch?v=StquF69-_wI) a (very old!) video I made showing off what it can do.
+### Smart Navigation
 
-[**Baritone Discord Server**](http://discord.gg/s6fRBAUpmr)
+- **Avoidance System**: Define zones that Baritone will path around
+- **Threat-Aware Pathing**: Factor in nearby hostile entities when planning routes
+- **Stuck Detection**: Automatically detect and recover from stuck states
+- **Damage Prediction**: Estimate path danger before committing
 
-**Quick download links:**
+### Automation Features
 
-| Forge                                                                                                         | Fabric                                                                                                          |
-| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [1.12.2 Forge](https://github.com/cabaletta/baritone/releases/download/v1.2.19/baritone-api-forge-1.2.19.jar) |                                                                                                                 |
-| [1.16.5 Forge](https://github.com/cabaletta/baritone/releases/download/v1.6.5/baritone-api-forge-1.6.5.jar)   | [1.16.5 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.6.5/baritone-api-fabric-1.6.5.jar)   |
-| [1.17.1 Forge](https://github.com/cabaletta/baritone/releases/download/v1.7.3/baritone-api-forge-1.7.3.jar)   | [1.17.1 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.7.3/baritone-api-fabric-1.7.3.jar)   |
-| [1.18.2 Forge](https://github.com/cabaletta/baritone/releases/download/v1.8.6/baritone-api-forge-1.8.6.jar)   | [1.18.2 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.8.6/baritone-api-fabric-1.8.6.jar)   |
-| [1.19.2 Forge](https://github.com/cabaletta/baritone/releases/download/v1.9.4/baritone-api-forge-1.9.4.jar)   | [1.19.2 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.9.4/baritone-api-fabric-1.9.4.jar)   |
-| [1.19.3 Forge](https://github.com/cabaletta/baritone/releases/download/v1.9.1/baritone-api-forge-1.9.1.jar)   | [1.19.3 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.9.1/baritone-api-fabric-1.9.1.jar)   |
-| [1.19.4 Forge](https://github.com/cabaletta/baritone/releases/download/v1.9.3/baritone-api-forge-1.9.3.jar)   | [1.19.4 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.9.3/baritone-api-fabric-1.9.3.jar)   |
-| [1.20.1 Forge](https://github.com/cabaletta/baritone/releases/download/v1.10.1/baritone-api-forge-1.10.1.jar) | [1.20.1 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.10.1/baritone-api-fabric-1.10.1.jar) |
-| [1.20.3 Forge](https://github.com/cabaletta/baritone/releases/download/v1.10.2/baritone-api-forge-1.10.2.jar) | [1.20.3 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.10.2/baritone-api-fabric-1.10.2.jar) |
-| [1.20.4 Forge](https://github.com/cabaletta/baritone/releases/download/v1.10.2/baritone-api-forge-1.10.2.jar) | [1.20.4 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.10.2/baritone-api-fabric-1.10.2.jar) |
-| [1.21.3 Forge](https://github.com/cabaletta/baritone/releases/download/v1.11.1/baritone-api-forge-1.11.1.jar) | [1.21.3 Fabric](https://github.com/cabaletta/baritone/releases/download/v1.11.1/baritone-api-fabric-1.11.1.jar) |
+- **Farm Integration**: Works with Meteor's TreeFarm and AutoFarm modules
+- **Auto-Return**: Return to designated home location on pause
+- **Goal Persistence**: Goals survive client restarts
+- **Multi-Goal Queueing**: Chain multiple objectives
 
-**Message for 2b2t players looking for 1.19/1.20 Baritone** If you like, please try the beta for Baritone Elytra for 2b2t, find it in #announcements of [the Baritone discord](http://discord.gg/s6fRBAUpmr). It supports 1.19.4 and 1.20.1, Forge or Fabric. If you have to see it to believe it, watch [this YouTube video](https://youtu.be/NnSlQi-68eQ).
+## 🚀 Building
 
-**How to immediately get started:** Type `#goto 1000 500` in chat to go to x=1000 z=500. Type `#mine diamond_ore` to mine diamond ore. Type `#stop` to stop. For more, read [the usage page](USAGE.md) and/or watch this [tutorial playlist](https://www.youtube.com/playlist?list=PLnwnJ1qsS7CoQl9Si-RTluuzCo_4Oulpa). Also try `#elytra` for Elytra flying in the Nether using fireworks.
+### Prerequisites
 
-For other versions of Minecraft or more complicated situations or for development, see [Installation & setup](SETUP.md). Also consider just installing [Impact](https://impactclient.net/), which comes with Baritone and is easier to install than wrangling with version JSONs and zips. For 1.16.5, [click here](https://www.youtube.com/watch?v=_4eVJ9Qz2J8) and see description. Once Baritone is installed, look [here](USAGE.md) for instructions on how to use it. There's a [showcase video](https://youtu.be/CZkLXWo4Fg4) made by @Adovin#6313 on Baritone which I recommend.
+- Java 21+
+- Gradle 8.11+
 
-This project is an updated version of [MineBot](https://github.com/leijurv/MineBot/),
-the original version of the bot for Minecraft 1.8.9, rebuilt for 1.12.2 onwards. Baritone focuses on reliability and particularly performance (it's over [30x faster](https://github.com/cabaletta/baritone/pull/180#issuecomment-423822928) than MineBot at calculating paths).
+### Build Commands
 
-Have committed at least once a day from Aug 1, 2018, to Aug 1, 2019.
+**Fabric (for Meteor Client)**:
 
-1Leijurv3DWTrGAfmmiTphjhXLvQiHg7K2
-
-## Getting Started
-
-Here are some links to help to get started:
-
-- [Features](FEATURES.md)
-
-- [Installation & setup](SETUP.md)
-
-- [API Javadocs](https://baritone.leijurv.com/)
-
-- [Settings](https://baritone.leijurv.com/baritone/api/Settings.html#field.detail)
-
-- [Usage (chat control)](USAGE.md)
-
-## Stars over time
-
-[![Stargazers over time](https://starchart.cc/cabaletta/baritone.svg)](https://starchart.cc/cabaletta/baritone)
-
-## API
-
-The API is heavily documented, you can find the Javadocs for the latest release [here](https://baritone.leijurv.com/).
-Please note that usage of anything located outside of the `baritone.api` package is not supported by the API release
-jar.
-
-Below is an example of basic usage for changing some settings, and then pathing to an X/Z goal.
-
-```java
-BaritoneAPI.getSettings().allowSprint.value = true;
-BaritoneAPI.getSettings().primaryTimeoutMS.value = 2000L;
-
-BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalXZ(10000, 20000));
+```bash
+cd fabric
+./gradlew build
 ```
 
-## FAQ
+Output: `fabric/build/libs/baritone-standalone-fabric-*.jar`
 
-## Can I use Baritone as a library in my custom utility client?
+**Standalone Jar**:
 
-That's what it's for, sure! (As long as usage complies with the LGPL 3.0 License)
+```bash
+./gradlew build
+```
 
-## How is it so fast?
+## 📦 Installation
 
-Magic. (Hours of [leijurv](https://github.com/leijurv/) enduring excruciating pain)
+### With Meteor Client
 
-### Additional Special Thanks To:
+This version is bundled with the [Meteor Client fork](https://github.com/canonrebel04/meteor-client). No separate installation needed.
 
-![YourKit-Logo](https://www.yourkit.com/images/yklogo.png)
+### Standalone
 
-YourKit supports open source projects with innovative and intelligent tools for monitoring and profiling Java and .NET applications.
+1. Download from [Releases](https://github.com/canonrebel04/baritone/releases)
+2. Place in `.minecraft/mods/` folder
+3. Requires Fabric Loader and Fabric API
 
-YourKit is the creator of the [YourKit Java Profiler](https://www.yourkit.com/java/profiler/), [YourKit .NET Profiler](https://www.yourkit.com/.net/profiler/), and [YourKit YouMonitor](https://www.yourkit.com/youmonitor/).
+## 📖 Commands
 
-We thank them for granting Baritone an OSS license so that we can make our software the best it can be.
+All commands use the `#` prefix.
 
-## Why is it called Baritone?
+### Navigation
 
-It's named for FitMC's deep sultry voice.
+```bash
+#goto <x> <y> <z>           # Path to coordinates
+#path <x> <y> <z>           # Same as goto
+#follow entity <name>       # Follow entity
+#follow player <name>       # Follow player
+#stop                       # Cancel current goal
+#come                       # Path to your location
+```
+
+### Mining & Gathering
+
+```bash
+#mine <block>               # Mine specific block type
+#mine diamond_ore 64        # Mine until inventory has 64
+#farm                       # Farm nearby crops
+#explore                    # Explore new chunks
+```
+
+### Building
+
+```bash
+#build <schematic>          # Build from schematic
+#sel pos1                   # Set selection corner 1
+#sel pos2                   # Set selection corner 2
+```
+
+### Settings
+
+```bash
+#set <setting> <value>      # Change setting
+#set list                   # List all settings
+#settings                   # Show current settings
+#reset                      # Reset to defaults
+```
+
+### Utility
+
+```bash
+#help                       # Show help
+#status                     # Show current status
+#version                    # Show Baritone version
+```
+
+## ⚙️ Key Settings
+
+Access via `#set <setting> <value>` or the in-game GUI:
+
+### Pathfinding
+
+- `allowBreak` - Allow breaking blocks (default: true)
+- `allowPlace` - Allow placing blocks (default: true)
+- `allowParkour` - Enable parkour movements (default: true)
+- `allowSprint` - Allow sprinting (default: true)
+
+### Safety
+
+- `avoidance` - Avoid dangerous situations (default: true)
+- `mobAvoidanceCoefficient` - How much to avoid mobs (default: 2.0)
+- `assumeWalkOnWater` - Treat water as walkable (default: false)
+
+### Performance
+
+- `primaryTimeoutMS` - Path calculation timeout (default: 1000)
+- `planAheadBlocks` - How far to plan ahead (default: 20)
+
+## 🔧 Notable Differences from Upstream
+
+- **Meteor Integration**: Native support for Meteor Client's systems
+- **Enhanced GUI**: Settings accessible through Meteor's GUI
+- **Avoidance Zones**: Integration with Meteor's zone system
+- **Threat Detection**: Uses Meteor's threat manager for safer pathing
+- **Auto-Return**: Coordinate with AutoReturn module
+- **Metrics**: Telemetry for performance monitoring
+
+## 📚 Documentation
+
+- [Baritone Features](FEATURES.md) - Comprehensive feature list
+- [Setup Guide](SETUP.md) - Installation and configuration
+- [Usage Guide](USAGE.md) - Command reference and examples
+
+## 🤝 Contributing
+
+This is a fork optimized for Meteor Client integration. For core Baritone contributions, see the [upstream repository](https://github.com/cabaletta/baritone).
+
+For integration-specific features:
+
+1. Fork this repository
+2. Create a feature branch
+3. Submit a pull request
+
+## 📜 License
+
+This project is licensed under the GNU Lesser General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Credits
+
+- **Original Baritone**: [cabaletta](https://github.com/cabaletta/baritone) and [contributors](https://github.com/cabaletta/baritone/graphs/contributors)
+- **Fabric Port**: [WagYourTail](https://github.com/wagyourtail)
+- **Integration**: [canonrebel04](https://github.com/canonrebel04)
+
+## ⚠️ Disclaimer
+
+Baritone is a powerful automation tool. Use responsibly:
+
+- Always follow server rules
+- Respect other players
+- Use ethically in multiplayer
+- Primarily intended for single-player or authorized use
+
+---
+
+**Upstream**: [cabaletta/baritone](https://github.com/cabaletta/baritone)  
+**Integration**: [canonrebel04/meteor-client](https://github.com/canonrebel04/meteor-client)
