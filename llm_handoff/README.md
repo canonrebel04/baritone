@@ -7,7 +7,7 @@ This folder is a **portable context snapshot** so you can continue this workspac
 - `context.md` — human-readable current state + what’s implemented + what’s next.
 - `context.json` — machine-readable snapshot for another LLM.
 - `prompt.txt` — ready-to-paste prompt that tells another LLM how to resume.
-- `vscode-template/` — VS Code task configs (“deploy scripts”) for Baritone + Meteor.
+- `vscode-template/` — VS Code task configs (“deploy scripts”) for Baritone + Meteor (stored as `tasks.json` etc, then installed into each repo’s `.vscode/`).
 - `import_to_vscode.sh` — installs the VS Code configs into a fresh workspace.
 - `export_from_vscode.sh` — re-captures `.vscode/` from your current workspace back into this bundle.
 

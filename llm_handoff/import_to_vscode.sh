@@ -8,28 +8,39 @@ TEMPLATE_DIR="$SCRIPT_DIR/vscode-template"
 # so workspace root is two levels up.
 WORKSPACE_ROOT="${1:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 
-copy_repo_vscode() {
+install_repo_vscode() {
   local repo_name="$1"
-  local src="$TEMPLATE_DIR/$repo_name/.vscode"
-  local dst="$WORKSPACE_ROOT/$repo_name/.vscode"
+  local src_dir="$TEMPLATE_DIR/$repo_name"
+  local dst_dir="$WORKSPACE_ROOT/$repo_name/.vscode"
 
   if [[ ! -d "$WORKSPACE_ROOT/$repo_name" ]]; then
     echo "skip: repo not found: $WORKSPACE_ROOT/$repo_name" >&2
     return 0
   fi
 
-  if [[ ! -d "$src" ]]; then
-    echo "skip: template not found: $src" >&2
+  if [[ ! -d "$src_dir" ]]; then
+    echo "skip: template not found: $src_dir" >&2
     return 0
   fi
 
-  mkdir -p "$dst"
-  # Copy template files into the repo .vscode
-  cp -a "$src/." "$dst/"
-  echo "installed: $repo_name -> $dst" >&2
+  mkdir -p "$dst_dir"
+
+  local installed_any=0
+  for file in tasks.json launch.json settings.json; do
+    if [[ -f "$src_dir/$file" ]]; then
+      cp -a "$src_dir/$file" "$dst_dir/$file"
+      installed_any=1
+    fi
+  done
+
+  if [[ "$installed_any" -eq 1 ]]; then
+    echo "installed: $repo_name -> $dst_dir" >&2
+  else
+    echo "skip: no template files for $repo_name" >&2
+  fi
 }
 
-copy_repo_vscode "baritone"
-copy_repo_vscode "meteor-client"
+install_repo_vscode "baritone"
+install_repo_vscode "meteor-client"
 
 echo "Done. In VS Code, run: Command Palette -> Tasks: Run Task" >&2

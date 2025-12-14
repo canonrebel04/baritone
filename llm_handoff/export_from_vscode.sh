@@ -7,24 +7,34 @@ WORKSPACE_ROOT="${1:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 
 export_repo_vscode() {
   local repo_name="$1"
-  local src="$WORKSPACE_ROOT/$repo_name/.vscode"
-  local dst="$TEMPLATE_DIR/$repo_name/.vscode"
+  local src_dir="$WORKSPACE_ROOT/$repo_name/.vscode"
+  local dst_dir="$TEMPLATE_DIR/$repo_name"
 
   if [[ ! -d "$WORKSPACE_ROOT/$repo_name" ]]; then
     echo "skip: repo not found: $WORKSPACE_ROOT/$repo_name" >&2
     return 0
   fi
 
-  if [[ ! -d "$src" ]]; then
-    echo "skip: no .vscode in repo: $src" >&2
+  if [[ ! -d "$src_dir" ]]; then
+    echo "skip: no .vscode in repo: $src_dir" >&2
     return 0
   fi
 
-  mkdir -p "$dst"
-  # Replace the template with current contents
-  rm -rf "$dst"/*
-  cp -a "$src/." "$dst/"
-  echo "exported: $repo_name <- $src" >&2
+  mkdir -p "$dst_dir"
+
+  local exported_any=0
+  for file in tasks.json launch.json settings.json; do
+    if [[ -f "$src_dir/$file" ]]; then
+      cp -a "$src_dir/$file" "$dst_dir/$file"
+      exported_any=1
+    fi
+  done
+
+  if [[ "$exported_any" -eq 1 ]]; then
+    echo "exported: $repo_name <- $src_dir" >&2
+  else
+    echo "skip: no tasks/launch/settings in $src_dir" >&2
+  fi
 }
 
 export_repo_vscode "baritone"
