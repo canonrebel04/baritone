@@ -152,7 +152,7 @@ def _dim_creative_key(dimension: str, creative: Optional[bool]) -> str:
 
 def _iter_jsonl(path: Path) -> Iterable[dict[str, Any]]:
     with path.open("r", encoding="utf-8", errors="replace") as f:
-        for line_no, line in enumerate(f, start=1):
+        for _line_no, line in enumerate(f, start=1):
             line = line.strip()
             if not line:
                 continue
@@ -167,11 +167,15 @@ def _iter_jsonl(path: Path) -> Iterable[dict[str, Any]]:
 def _group_stats(values: list[float]) -> str:
     if not values:
         return "median=- p95=-"
-    return f"median={_fmt_num(_median(values), 'ms')} p95={_fmt_num(_p95(values), 'ms')}"
+    return (
+        f"median={_fmt_num(_median(values), 'ms')} p95={_fmt_num(_p95(values), 'ms')}"
+    )
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Summarize Baritone metrics.jsonl (pathing + elytra).")
+    ap = argparse.ArgumentParser(
+        description="Summarize Baritone metrics.jsonl (pathing + elytra)."
+    )
     ap.add_argument("file", type=Path, help="Path to metrics.jsonl")
     ap.add_argument(
         "--by-mark",
@@ -182,8 +186,7 @@ def main() -> int:
         "--top",
         type=int,
         default=8,
-        help="How many items to show in "
-        "top-N breakdowns (default: 8).",
+        help="How many items to show in " "top-N breakdowns (default: 8).",
     )
     ap.add_argument(
         "--examples",
@@ -244,7 +247,9 @@ def main() -> int:
         if st:
             server_type_counts[st] += 1
         if "is_integrated_server" in obj:
-            integrated_counts["true" if bool(obj.get("is_integrated_server")) else "false"] += 1
+            integrated_counts[
+                "true" if bool(obj.get("is_integrated_server")) else "false"
+            ] += 1
 
         is_legacy_path_end = (
             raw_type in legacy_path_end_types
@@ -279,9 +284,21 @@ def main() -> int:
                     "command": cmd,
                     "command_variant": cmd_variant,
                     "mark": active_mark,
-                    "player_on_ground": (obj.get("player_on_ground") if isinstance(obj.get("player_on_ground"), bool) else None),
-                    "player_flying": (obj.get("player_flying") if isinstance(obj.get("player_flying"), bool) else None),
-                    "start_walkable": (obj.get("start_walkable") if isinstance(obj.get("start_walkable"), bool) else None),
+                    "player_on_ground": (
+                        obj.get("player_on_ground")
+                        if isinstance(obj.get("player_on_ground"), bool)
+                        else None
+                    ),
+                    "player_flying": (
+                        obj.get("player_flying")
+                        if isinstance(obj.get("player_flying"), bool)
+                        else None
+                    ),
+                    "start_walkable": (
+                        obj.get("start_walkable")
+                        if isinstance(obj.get("start_walkable"), bool)
+                        else None
+                    ),
                 }
 
         if typ == "path_end":
@@ -326,9 +343,17 @@ def main() -> int:
                     path_cost=_as_int(obj.get("path_cost_ticks")),
                     goal_class=goal_class,
                     effective_goal_class=str(obj.get("effective_goal_class", "")),
-                    simplified=(obj.get("goal_simplified") if isinstance(obj.get("goal_simplified"), bool) else None),
+                    simplified=(
+                        obj.get("goal_simplified")
+                        if isinstance(obj.get("goal_simplified"), bool)
+                        else None
+                    ),
                     dimension=str(obj.get("dimension", "")) or "-",
-                    creative=(obj.get("creative") if isinstance(obj.get("creative"), bool) else None),
+                    creative=(
+                        obj.get("creative")
+                        if isinstance(obj.get("creative"), bool)
+                        else None
+                    ),
                     path_attempt_id=attempt_id,
                     mark=mark_label,
                     command=cmd,
@@ -342,7 +367,11 @@ def main() -> int:
             elytra_ends.append(
                 ElytraEnd(
                     success=bool(obj.get("success", False)),
-                    overshoot=(obj.get("overshoot") if isinstance(obj.get("overshoot"), bool) else None),
+                    overshoot=(
+                        obj.get("overshoot")
+                        if isinstance(obj.get("overshoot"), bool)
+                        else None
+                    ),
                     reason=str(obj.get("reason", "")) or "-",
                     state_end=str(obj.get("state_end", "")) or "-",
                     lost_control_source=str(obj.get("lost_control_source", "")) or "-",
@@ -357,22 +386,44 @@ def main() -> int:
                     avg_speed=_as_float(obj.get("avg_speed")),
                     max_speed=_as_float(obj.get("max_speed")),
                     dimension=str(obj.get("dimension", "")) or "-",
-                    creative=(obj.get("creative") if isinstance(obj.get("creative"), bool) else None),
+                    creative=(
+                        obj.get("creative")
+                        if isinstance(obj.get("creative"), bool)
+                        else None
+                    ),
                     mark=active_mark,
                 )
             )
         elif typ == "elytra_landing_select":
             elytra_landing_selects.append(
                 ElytraLandingSelect(
-                    path_complete=(obj.get("path_complete") if isinstance(obj.get("path_complete"), bool) else None),
-                    safety_landing=(obj.get("safety_landing") if isinstance(obj.get("safety_landing"), bool) else None),
-                    landing_found=(obj.get("landing_found") if isinstance(obj.get("landing_found"), bool) else None),
+                    path_complete=(
+                        obj.get("path_complete")
+                        if isinstance(obj.get("path_complete"), bool)
+                        else None
+                    ),
+                    safety_landing=(
+                        obj.get("safety_landing")
+                        if isinstance(obj.get("safety_landing"), bool)
+                        else None
+                    ),
+                    landing_found=(
+                        obj.get("landing_found")
+                        if isinstance(obj.get("landing_found"), bool)
+                        else None
+                    ),
                     search_origin=str(obj.get("search_origin", "")) or "-",
                     player_dist_xz=_as_float(obj.get("player_dist_xz")),
                     last_to_dest_dist_xz=_as_float(obj.get("last_to_dest_dist_xz")),
-                    landing_to_dest_dist_xz=_as_float(obj.get("landing_to_dest_dist_xz")),
+                    landing_to_dest_dist_xz=_as_float(
+                        obj.get("landing_to_dest_dist_xz")
+                    ),
                     dimension=str(obj.get("dimension", "")) or "-",
-                    creative=(obj.get("creative") if isinstance(obj.get("creative"), bool) else None),
+                    creative=(
+                        obj.get("creative")
+                        if isinstance(obj.get("creative"), bool)
+                        else None
+                    ),
                     mark=active_mark,
                 )
             )
@@ -382,7 +433,11 @@ def main() -> int:
                     label=str(obj.get("label", "")) or "-",
                     ts=_as_int(obj.get("ts")),
                     dimension=str(obj.get("dimension", "")) or "-",
-                    creative=(obj.get("creative") if isinstance(obj.get("creative"), bool) else None),
+                    creative=(
+                        obj.get("creative")
+                        if isinstance(obj.get("creative"), bool)
+                        else None
+                    ),
                 )
             )
         elif typ == "session_start":
@@ -419,7 +474,9 @@ def main() -> int:
         print("  Most recent:")
         for s in recent:
             ts = "-" if s.ts is None else str(s.ts)
-            print(f"    ts={ts}  session_id={s.session_id}  mc_version={s.mc_version}  baritone_version={s.baritone_version}")
+            print(
+                f"    ts={ts}  session_id={s.session_id}  mc_version={s.mc_version}  baritone_version={s.baritone_version}"
+            )
         print()
 
     if marks:
@@ -443,7 +500,9 @@ def main() -> int:
         extra = ""
         if path_attempt_ids:
             extra = f"  distinct_attempts={len(path_attempt_ids)}"
-        print(f"  total={total} success={_pct(ok, total)} ({ok}/{total})  {_group_stats(times_f)}{extra}")
+        print(
+            f"  total={total} success={_pct(ok, total)} ({ok}/{total})  {_group_stats(times_f)}{extra}"
+        )
 
         # scenario breakdown
         by_scenario: dict[str, list[PathEnd]] = defaultdict(list)
@@ -475,7 +534,9 @@ def main() -> int:
                 ok_d = sum(1 for e in rows if e.success)
                 t = [e.time_ms for e in rows if e.time_ms is not None]
                 t_f = [float(x) for x in t if x is not None]
-                print(f"    {key}: n={total_d} success={_pct(ok_d, total_d)}  time({ _group_stats(t_f) })")
+                print(
+                    f"    {key}: n={total_d} success={_pct(ok_d, total_d)}  time({ _group_stats(t_f) })"
+                )
             print()
 
         # top goal classes
@@ -486,7 +547,9 @@ def main() -> int:
         print()
 
         # result_type breakdown (especially useful for failures)
-        top_result = Counter(e.result_type for e in path_ends if e.result_type and e.result_type != "-")
+        top_result = Counter(
+            e.result_type for e in path_ends if e.result_type and e.result_type != "-"
+        )
         if top_result:
             print("  Top result_type (path_end):")
             for rt, cnt in top_result.most_common(args.top):
@@ -513,11 +576,27 @@ def main() -> int:
                         if aid == "-" or aid in seen_attempts:
                             continue
                         seen_attempts.add(aid)
-                        cmd = e.command if e.command_variant == "-" else f"{e.command}:{e.command_variant}"
+                        cmd = (
+                            e.command
+                            if e.command_variant == "-"
+                            else f"{e.command}:{e.command_variant}"
+                        )
                         ts = _fmt_num(e.time_ms, "ms") if e.time_ms is not None else "-"
-                        fly = "?" if e.player_flying is None else ("true" if e.player_flying else "false")
-                        on_ground = "?" if e.player_on_ground is None else ("true" if e.player_on_ground else "false")
-                        walkable = "?" if e.start_walkable is None else ("true" if e.start_walkable else "false")
+                        fly = (
+                            "?"
+                            if e.player_flying is None
+                            else ("true" if e.player_flying else "false")
+                        )
+                        on_ground = (
+                            "?"
+                            if e.player_on_ground is None
+                            else ("true" if e.player_on_ground else "false")
+                        )
+                        walkable = (
+                            "?"
+                            if e.start_walkable is None
+                            else ("true" if e.start_walkable else "false")
+                        )
                         print(
                             f"    {rt}: attempt_id={aid}  mark={e.mark}  command={cmd}  dim={e.dimension}  segment={e.segment}  time={ts}  flying={fly}  on_ground={on_ground}  start_walkable={walkable}"
                         )
@@ -531,15 +610,23 @@ def main() -> int:
         if cmd_rows:
             by_cmd: dict[str, list[PathEnd]] = defaultdict(list)
             for e in cmd_rows:
-                key = e.command if e.command_variant == "-" else f"{e.command}:{e.command_variant}"
+                key = (
+                    e.command
+                    if e.command_variant == "-"
+                    else f"{e.command}:{e.command_variant}"
+                )
                 by_cmd[key].append(e)
             print("  By command (path_end, correlated):")
-            for key, rows in sorted(by_cmd.items(), key=lambda kv: len(kv[1]), reverse=True)[: args.top]:
+            for key, rows in sorted(
+                by_cmd.items(), key=lambda kv: len(kv[1]), reverse=True
+            )[: args.top]:
                 total_c = len(rows)
                 ok_c = sum(1 for e in rows if e.success)
                 t = [e.time_ms for e in rows if e.time_ms is not None]
                 t_f = [float(x) for x in t if x is not None]
-                print(f"    {key}: n={total_c} success={_pct(ok_c, total_c)}  time({ _group_stats(t_f) })")
+                print(
+                    f"    {key}: n={total_c} success={_pct(ok_c, total_c)}  time({ _group_stats(t_f) })"
+                )
             print()
 
         if args.by_mark:
@@ -549,12 +636,16 @@ def main() -> int:
                 for e in mark_rows:
                     by_mark[e.mark].append(e)
                 print("  By mark label (path_end):")
-                for key, rows in sorted(by_mark.items(), key=lambda kv: len(kv[1]), reverse=True)[: max(args.top, 12)]:
+                for key, rows in sorted(
+                    by_mark.items(), key=lambda kv: len(kv[1]), reverse=True
+                )[: max(args.top, 12)]:
                     total_m = len(rows)
                     ok_m = sum(1 for e in rows if e.success)
                     t = [e.time_ms for e in rows if e.time_ms is not None]
                     t_f = [float(x) for x in t if x is not None]
-                    print(f"    {key}: n={total_m} success={_pct(ok_m, total_m)}  time({ _group_stats(t_f) })")
+                    print(
+                        f"    {key}: n={total_m} success={_pct(ok_m, total_m)}  time({ _group_stats(t_f) })"
+                    )
                 print()
 
     if elytra_ends:
@@ -562,7 +653,11 @@ def main() -> int:
         arrived_xz_threshold = 12.0
         total = len(elytra_ends)
         ok = sum(1 for e in elytra_ends if e.success)
-        arrived_xz = sum(1 for e in elytra_ends if e.min_dist_xz is not None and e.min_dist_xz <= arrived_xz_threshold)
+        arrived_xz = sum(
+            1
+            for e in elytra_ends
+            if e.min_dist_xz is not None and e.min_dist_xz <= arrived_xz_threshold
+        )
         overs = sum(1 for e in elytra_ends if e.overshoot is True)
         times = [e.time_ms for e in elytra_ends if e.time_ms is not None]
         times_f = [float(t) for t in times if t is not None]
@@ -595,8 +690,16 @@ def main() -> int:
         if fails:
             top_state = Counter(e.state_end for e in fails if e.state_end)
             top_reason = Counter(e.reason for e in fails if e.reason)
-            top_lost_to = Counter(e.lost_control_to for e in fails if e.lost_control_to and e.lost_control_to != "-")
-            top_lost_src = Counter(e.lost_control_source for e in fails if e.lost_control_source and e.lost_control_source != "-")
+            top_lost_to = Counter(
+                e.lost_control_to
+                for e in fails
+                if e.lost_control_to and e.lost_control_to != "-"
+            )
+            top_lost_src = Counter(
+                e.lost_control_source
+                for e in fails
+                if e.lost_control_source and e.lost_control_source != "-"
+            )
             print()
             print("  Top state_end (failures):")
             for state, cnt in top_state.most_common(args.top):
@@ -621,10 +724,17 @@ def main() -> int:
                     by_mark[e.mark].append(e)
                 print()
                 print("  By mark label (elytra_end):")
-                for key, rows in sorted(by_mark.items(), key=lambda kv: len(kv[1]), reverse=True)[: max(args.top, 12)]:
+                for key, rows in sorted(
+                    by_mark.items(), key=lambda kv: len(kv[1]), reverse=True
+                )[: max(args.top, 12)]:
                     total_m = len(rows)
                     ok_m = sum(1 for e in rows if e.success)
-                    arrived_xz_m = sum(1 for e in rows if e.min_dist_xz is not None and e.min_dist_xz <= arrived_xz_threshold)
+                    arrived_xz_m = sum(
+                        1
+                        for e in rows
+                        if e.min_dist_xz is not None
+                        and e.min_dist_xz <= arrived_xz_threshold
+                    )
                     overs_m = sum(1 for e in rows if e.overshoot is True)
                     t = [e.time_ms for e in rows if e.time_ms is not None]
                     t_f = [float(x) for x in t if x is not None]
@@ -638,9 +748,21 @@ def main() -> int:
         total = len(elytra_landing_selects)
         found = sum(1 for e in elytra_landing_selects if e.landing_found is True)
 
-        player_d = [e.player_dist_xz for e in elytra_landing_selects if e.player_dist_xz is not None]
-        last_d = [e.last_to_dest_dist_xz for e in elytra_landing_selects if e.last_to_dest_dist_xz is not None]
-        land_d = [e.landing_to_dest_dist_xz for e in elytra_landing_selects if e.landing_to_dest_dist_xz is not None]
+        player_d = [
+            e.player_dist_xz
+            for e in elytra_landing_selects
+            if e.player_dist_xz is not None
+        ]
+        last_d = [
+            e.last_to_dest_dist_xz
+            for e in elytra_landing_selects
+            if e.last_to_dest_dist_xz is not None
+        ]
+        land_d = [
+            e.landing_to_dest_dist_xz
+            for e in elytra_landing_selects
+            if e.landing_to_dest_dist_xz is not None
+        ]
 
         print(
             f"  total={total} landing_found={_pct(found, total)} ({found}/{total})\n"
@@ -649,9 +771,19 @@ def main() -> int:
 
         by_trigger: Counter[str] = Counter()
         for e in elytra_landing_selects:
-            pc = "?" if e.path_complete is None else ("true" if e.path_complete else "false")
-            sl = "?" if e.safety_landing is None else ("true" if e.safety_landing else "false")
-            by_trigger[f"path_complete={pc} safety_landing={sl} origin={e.search_origin}"] += 1
+            pc = (
+                "?"
+                if e.path_complete is None
+                else ("true" if e.path_complete else "false")
+            )
+            sl = (
+                "?"
+                if e.safety_landing is None
+                else ("true" if e.safety_landing else "false")
+            )
+            by_trigger[
+                f"path_complete={pc} safety_landing={sl} origin={e.search_origin}"
+            ] += 1
         if by_trigger:
             print("  Top triggers:")
             for key, cnt in by_trigger.most_common(args.top):
@@ -664,11 +796,19 @@ def main() -> int:
                 for e in mark_rows:
                     by_mark[e.mark].append(e)
                 print("  By mark label (elytra_landing_select):")
-                for key, rows in sorted(by_mark.items(), key=lambda kv: len(kv[1]), reverse=True)[: max(args.top, 12)]:
+                for key, rows in sorted(
+                    by_mark.items(), key=lambda kv: len(kv[1]), reverse=True
+                )[: max(args.top, 12)]:
                     total_m = len(rows)
                     found_m = sum(1 for e in rows if e.landing_found is True)
-                    player_d_m = [e.player_dist_xz for e in rows if e.player_dist_xz is not None]
-                    land_d_m = [e.landing_to_dest_dist_xz for e in rows if e.landing_to_dest_dist_xz is not None]
+                    player_d_m = [
+                        e.player_dist_xz for e in rows if e.player_dist_xz is not None
+                    ]
+                    land_d_m = [
+                        e.landing_to_dest_dist_xz
+                        for e in rows
+                        if e.landing_to_dest_dist_xz is not None
+                    ]
                     print(
                         f"    {key}: n={total_m} landing_found={_pct(found_m, total_m)}  player_dist_xz(med={_fmt_num(_median(player_d_m))})  landing_to_dest_dist_xz(med={_fmt_num(_median(land_d_m))})"
                     )

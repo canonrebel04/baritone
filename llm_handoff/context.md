@@ -59,6 +59,7 @@ See: `baritone/PROJECT_PLAN.md`.
 ## Key files (starting points)
 
 Meteor Client:
+
 - `src/main/java/meteordevelopment/meteorclient/systems/modules/world/AutoCraft.java`
 - `src/main/java/meteordevelopment/meteorclient/systems/autocraft/AutoCraftMemory.java`
 - `src/main/java/meteordevelopment/meteorclient/gui/tabs/builtin/AutoCraftTab.java`
@@ -66,6 +67,7 @@ Meteor Client:
 - `src/main/java/meteordevelopment/meteorclient/systems/modules/misc/swarm/SwarmProtocol.java`
 
 Baritone:
+
 - `PROJECT_PLAN.md` (roadmap)
 
 ## Next work (suggested)

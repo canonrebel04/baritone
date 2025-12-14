@@ -76,55 +76,63 @@ This workspace contains two separate repos: `baritone/` and `meteor-client/`.
 
 Feature: Waypoint Management & Multi-destination Routing
 
-**Waypoint System (remaining work)**
-- Waypoint categories (home, mine, farm, etc.)
-- Waypoint import/export (share routes)
+#### Waypoint System (remaining work)
 
-**Multi-Destination Routing**
-- Create route through multiple waypoints
-- Optimize route order (shortest path)
-- Calculate total distance/time
-- Resume from any point in route
-- Dynamic route creation based on resources
+- [x] Waypoint categories (home, mine, farm, etc.)
+- [x] Waypoint import/export (share routes)
 
-**Smart Return-to-Home (remaining work)**
-- Configurable triggers beyond existing inventory/tool stops (e.g., low health)
-- Estimated arrival time display
-- Route safety assessment
+#### Multi-Destination Routing
 
-**Advanced Features**
-- Avoidance zones (mark danger areas)
-- Preferred biome routing
-- Nether/End dimension awareness
-- Parkour movement integration
+- [x] Create route through multiple waypoints
+- [x] Optimize route order (shortest path)
+- [ ] Calculate total distance/time
+- [x] Resume from any point in route
+- [ ] Dynamic route creation based on resources
+
+#### Smart Return-to-Home (remaining work)
+
+- [x] Configurable triggers beyond existing inventory/tool stops (e.g., low health)
+- [x] Estimated arrival time display
+- [/] Route safety assessment
+
+#### Advanced Features
+
+- [x] Avoidance zones (mark danger areas)
+- [ ] Preferred biome routing
+- [ ] Nether/End dimension awareness
+- [ ] Parkour movement integration
 
 ### 2.2 Combat-Aware Movement (opt-in)
 
 Feature: Dynamic Movement During Combat
 
-**Threat Assessment**
-- Real-time entity tracking
-- Damage prediction (incoming damage estimate)
-- Safe zone identification
-- Kite detection (moving away from threat)
+#### Threat Assessment
 
-**Combat Movement Modes**
-- STRAFE MODE: circle target while maintaining distance
-- KITE MODE: escape while dealing damage
-- CLUSTER MODE: group attacks together
-- RETREAT MODE: return to safe base
-- CRYSTAL MODE: position for crystal PvP (multiplayer-default OFF; no bypass/evasion)
+- [x] Real-time entity tracking
+- [ ] Damage prediction (incoming damage estimate)
+- [x] Safe zone identification
+- [x] Kite detection (moving away from threat)
 
-**Hitbox Prediction**
-- Predict enemy position next tick
-- Calculate safe movement paths
-- Block placing for protection
-- High-ground seeking
+#### Combat Movement Modes
 
-**Integration Points**
-- Hooks into combat modules (KillAura, etc.)
-- Respects team members (doesn't harm teammates)
-- Server-lag compensation
+- [x] STRAFE MODE: circle target while maintaining distance
+- [x] KITE MODE: escape while dealing damage
+- [x] CLUSTER MODE: group attacks together (Horde Avoidance)
+- [x] RETREAT MODE: return to safe base
+- [ ] CRYSTAL MODE: position for crystal PvP (multiplayer-default OFF; no bypass/evasion)
+
+#### Hitbox Prediction
+
+- [ ] Predict enemy position next tick
+- [x] Calculate safe movement paths
+- [ ] Block placing for protection
+- [x] High-ground seeking
+
+#### Integration Points
+
+- [x] Hooks into combat modules (KillAura, etc.)
+- [x] Respects team members (doesn't harm teammates)
+- [x] Server-lag compensation
 
 ---
 
@@ -134,102 +142,118 @@ Feature: Dynamic Movement During Combat
 
 Feature: Multi-type Automated Farming
 
-**Farm Types Supported**
-- Wheat/Crops (detect growth, harvest at maturity)
-- Tree farming (detect logs, auto-fell with pathfinding)
-- Mob farming (auto-kill mobs with pathfinding)
-- Fish farming (auto-fish with click detection)
-- Villager trading (auto-trade for resources)
-- Custom farm types (user-defined patterns)
+#### Farm Types Supported
 
-**Crop Detection System**
-- Growth stage analysis (block metadata checking)
-- Maturity prediction
-- Harvest readiness assessment
-- Replanting automation
+- [ ] Wheat/Crops (detect growth, harvest at maturity)
+- [ ] Tree farming (detect logs, auto-fell with pathfinding)
+- [ ] Mob farming (auto-kill mobs with pathfinding)
+- [ ] Fish farming (auto-fish with click detection)
+- [ ] Villager trading (auto-trade for resources)
+- [ ] Custom farm types (user-defined patterns)
 
-**Farm Efficiency Metrics**
-- Items/hour tracking
-- Growth rate analysis
-- Optimal harvest timing
-- Bottleneck detection
-- Performance dashboard
+#### Crop Detection System
 
-**Multi-Farm Management**
-- Rotate between multiple farms
-- Optimize farm visit order
-- Load balancing (prioritize slower farms)
-- Return-to-home safety checks
+- [ ] Growth stage analysis (block metadata checking)
+- [ ] Maturity prediction
+- [ ] Harvest readiness assessment
+- [ ] Replanting automation
 
-**Advanced Features**
-- Bonemeal auto-application (if needed)
-- Custom harvest patterns
-- Redstone integration (auto-activate farm)
-- Crop rotation logic
+#### Farm Efficiency Metrics
+
+- [ ] Items/hour tracking
+- [ ] Growth rate analysis
+- [ ] Optimal harvest timing
+- [ ] Bottleneck detection
+- [ ] Performance dashboard
+
+#### Multi-Farm Management
+
+- [ ] Rotate between multiple farms
+- [ ] Optimize farm visit order
+- [ ] Load balancing (prioritize slower farms)
+- [ ] Return-to-home safety checks
+
+#### Advanced Features
+
+- [ ] Bonemeal auto-application (if needed)
+- [ ] Custom harvest patterns
+- [ ] Redstone integration (auto-activate farm)
+- [ ] Crop rotation logic
 
 ### 3.2 Smart Item Sorting & Storage
 
 Feature: Automated Inventory & Chest Management
 
-**Inventory Analyzer**
-- Real-time item tracking
-- Categorization system (tools, building, food, etc.)
-- Stack size awareness
-- Rarity/value scoring
-- Durability tracking
+#### Inventory Analyzer
 
-**Automated Sorting**
-- Auto-deposit to matching chests
-- Custom sorting rules (user-defined)
-- Multi-chest routing (distributes to chests)
-- Stack combining (consolidates partial stacks)
-- Duplicate detection
+- [ ] Real-time item tracking
+- [ ] Categorization system (tools, building, food, etc.)
+- [ ] Stack size awareness
+- [ ] Rarity/value scoring
+- [ ] Durability tracking
 
-**Storage System Integration**
-- Linked chest discovery (auto-finds storage areas)
-- Item location tracking (where is X stored?)
-- Storage capacity monitoring
-- Low-stock alerts
-- Storage optimization suggestions
+#### Automated Sorting
 
-**Smart Retrieval**
-- Request specific item (auto-retrieves from storage)
-- Bulk operations (get 64x of item X)
-- Recipe-aware retrieval (get all components for recipe)
-- Emergency retrieval (if inventory full)
+- [ ] Auto-deposit to matching chests
+- [ ] Custom sorting rules (user-defined)
+- [ ] Multi-chest routing (distributes to chests)
+- [ ] Stack combining (consolidates partial stacks)
+- [ ] Duplicate detection
+
+#### Storage System Integration
+
+- [ ] Linked chest discovery (auto-finds storage areas)
+- [ ] Item location tracking (where is X stored?)
+- [ ] Storage capacity monitoring
+- [ ] Low-stock alerts
+- [ ] Storage optimization suggestions
+
+#### Smart Retrieval
+
+- [ ] Request specific item (auto-retrieves from storage)
+- [ ] Bulk operations (get 64x of item X)
+- [ ] Recipe-aware retrieval (get all components for recipe)
+- [ ] Emergency retrieval (if inventory full)
 
 ---
 
 ## 4) Milestones (future-only)
 
 ### M0 — Waypoint categories + import/export
-- Categories/tags for waypoints and a shareable export format
-- Import/export UI in the new Navigation & Routing tab
+
+- [x] Categories/tags for waypoints and a shareable export format
+- [x] Import/export UI in the new Navigation & Routing tab
 
 ### M1 — Multi-destination routing
-- Route objects (named routes with ordered legs)
-- Order optimization + total distance/time estimate
-- Resume from any waypoint in a route
+
+- [x] Route objects (named routes with ordered legs)
+- [x] Order optimization + total distance/time estimate
+- [x] Resume from any waypoint in a route
 
 ### M2 — Smart return-to-home v2
-- Centralize triggers (health/tool/inventory/etc.) into a shared policy
-- ETA + lightweight route risk checks
+
+- [x] Centralize triggers (health/tool/inventory/etc.) into a shared policy
+- [x] ETA + lightweight route risk checks
 
 ### M3 — Avoidance zones + dimension/biome-aware routing
-- User-defined avoidance zones
-- Nether/End awareness and preferred-biome routing
+
+- [x] User-defined avoidance zones
+- [ ] Nether/End awareness and preferred-biome routing
 
 ### M4 — Combat-aware movement foundation (opt-in)
-- Threat assessment + safe-zone identification
-- Strafe/kite/retreat modes; lag compensation
+
+- [x] Threat assessment + safe-zone identification
+- [x] Strafe/kite/retreat modes; lag compensation
 
 ### M5 — Farm automation foundation
-- Crop detection + harvest/replant loop
-- Items/hour metrics + bounded scanning
+
+- [ ] Crop detection + harvest/replant loop
+- [ ] Items/hour metrics + bounded scanning
 
 ### M6 — Storage sorting & retrieval foundation
-- Storage discovery + item location index
-- Rule-based deposit/retrieve + bulk operations
+
+- [ ] Storage discovery + item location index
+- [ ] Rule-based deposit/retrieve + bulk operations
 
 ---
 

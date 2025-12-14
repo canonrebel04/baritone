@@ -13,12 +13,12 @@ This folder is a **portable context snapshot** so you can continue this workspac
 
 ## Quick start (new machine / new VS Code install)
 
-1) Copy this entire `llm_handoff/` folder to the new workspace (keeping its relative path inside `baritone/`).
-2) Run:
+1. Copy this entire `llm_handoff/` folder to the new workspace (keeping its relative path inside `baritone/`).
+2. Run:
 
 - `bash baritone/llm_handoff/import_to_vscode.sh`
 
-3) Open the workspace in VS Code. Tasks will appear under **Run Task…**.
+3. Open the workspace in VS Code. Tasks will appear under **Run Task…**.
 
 ## Using with another LLM
 
