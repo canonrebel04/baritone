@@ -1,0 +1,17 @@
+You are taking over an in-progress coding session in a VS Code workspace containing two sibling repos: `baritone/` and `meteor-client/`.
+
+1) First read:
+- `baritone/llm_handoff/context.md`
+- `baritone/llm_handoff/context.json`
+
+2) Treat the repo states as authoritative:
+- Baritone is on branch `master` at commit `50df51dc439d4f1421ff39566b67578aafce9cf1`.
+- Meteor Client is on branch `master` at commit `5c46172e0e9d240de6a187ef3b9d2411bc49cb36`.
+
+3) Your job is to continue from the “Next work (suggested)” section and/or implement new user requests without re-doing already implemented features.
+
+4) Keep swarm/remote-control safe-by-default:
+- allowlist-only actions
+- trusted host/token gating
+
+When you answer, reference exact file paths for changes.

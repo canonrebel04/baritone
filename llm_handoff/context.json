@@ -1,0 +1,107 @@
+{
+  "generated_at": "2025-12-14",
+  "os": "Linux",
+  "workspace": {
+    "folders": ["/home/cachy/baritone", "/home/cachy/meteor-client"]
+  },
+  "git": {
+    "baritone": {
+      "path": "/home/cachy/baritone",
+      "branch": "master",
+      "commit": "50df51dc439d4f1421ff39566b67578aafce9cf1",
+      "remote": "origin",
+      "build_verified": true,
+      "build_command": "./gradlew --no-daemon test :fabric:build"
+    },
+    "meteor_client": {
+      "path": "/home/cachy/meteor-client",
+      "branch": "master",
+      "commit": "5c46172e0e9d240de6a187ef3b9d2411bc49cb36",
+      "remote": "origin",
+      "build_verified": true,
+      "build_command": "./gradlew --no-daemon build -x test"
+    }
+  },
+  "implemented": {
+    "autocraft": {
+      "container_selection": true,
+      "use_only_selected_mode": true,
+      "clear_memory_button": true,
+      "clear_chests_button": true,
+      "reset_selection_button": true,
+      "crafting_table_bootstrap": true,
+      "crafting_recipe_filtering": true,
+      "click_recipe_correct_sync_id": true
+    },
+    "orescanner": {
+      "stop_on_inventory_full": true,
+      "stop_on_low_durability": true,
+      "return_home_waypoint": true,
+      "home_waypoint_default_name": "Home"
+    },
+    "swarm": {
+      "versioned_protocol": true,
+      "trusted_host_gate": true,
+      "optional_token_gate": true,
+      "allowlist_enforced": true
+    },
+    "navigation_exploration": {
+      "waypoints_system": true,
+      "navigator_module": true,
+      "new_chunks": true,
+      "cave_finder": true,
+      "poi_detector": true
+    }
+  },
+  "key_files": [
+    {
+      "repo": "meteor-client",
+      "path": "src/main/java/meteordevelopment/meteorclient/systems/modules/world/AutoCraft.java",
+      "role": "AutoCraft executor + table bootstrap"
+    },
+    {
+      "repo": "meteor-client",
+      "path": "src/main/java/meteordevelopment/meteorclient/systems/autocraft/AutoCraftMemory.java",
+      "role": "Persistent storage memory + container selection"
+    },
+    {
+      "repo": "meteor-client",
+      "path": "src/main/java/meteordevelopment/meteorclient/gui/tabs/builtin/AutoCraftTab.java",
+      "role": "AutoCraft UI + clear/reset controls"
+    },
+    {
+      "repo": "meteor-client",
+      "path": "src/main/java/meteordevelopment/meteorclient/systems/modules/world/OreScanner.java",
+      "role": "Ore scan + mine + stop/return policies"
+    },
+    {
+      "repo": "meteor-client",
+      "path": "src/main/java/meteordevelopment/meteorclient/systems/modules/misc/swarm/SwarmProtocol.java",
+      "role": "Swarm allowlisted protocol schema"
+    },
+    {
+      "repo": "baritone",
+      "path": "PROJECT_PLAN.md",
+      "role": "Roadmap (future-only), includes PHASE 2/3"
+    }
+  ],
+  "next_planned": {
+    "phase2": [
+      "Waypoint categories/tags",
+      "Waypoint + route import/export",
+      "Multi-destination routing + order optimization",
+      "Return-to-home v2 (add low-health trigger + ETA + route safety)"
+    ],
+    "phase3": [
+      "Automated farm foundation (crop maturity + harvest/replant)",
+      "Storage discovery + item location tracking",
+      "Rule-based auto-deposit/retrieve + bulk operations"
+    ]
+  },
+  "constraints": {
+    "no_bypass_evasion": true,
+    "remote_control_allowlisted_only": true,
+    "bounded_scanning": true,
+    "render_hotpath_no_alloc": true
+  }
+}
