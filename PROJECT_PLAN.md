@@ -1,4 +1,4 @@
-# Baritone (1.21.10) + Meteor Client — Project Plan (2025-12-13)
+# Baritone (1.21.10) + Meteor Client — Project Plan (2025-12-14)
 
 **Goal**: Make Meteor Client the primary UX for Baritone on 1.21.10 with powerful **buttons + panels + HUD overlays**, while improving practical “AI” (decision logic), mining/building automation, swarm control, and performance.
 
@@ -45,356 +45,197 @@ This workspace contains two separate repos: `baritone/` and `meteor-client/`.
 
 ---
 
-## 1) Product goals
+## 1) Product goals (remaining)
 
-- **Meteor-first UX**: common actions are buttons, not chat parsing.
-- **Smarter automation**: fewer stalls, safer navigation, better recovery.
-- **Faster**: reduce replans/allocations; keep client thread smooth.
-- **Extensible agent**: background task queue + policies.
-- **Swarm**: coordinate multiple clients safely.
-- **Exploration**: mapping overlays, waypoints, cave tools.
+- **Advanced navigation**: waypoint categories, routes, avoidance zones, and multi-destination routing.
+- **Smarter “return home”**: consistent triggers (health/tool/inventory/etc.), ETA display, and bounded safety checks.
+- **Combat-aware movement (opt-in)**: safe repositioning logic that can integrate with combat modules without bypass/evasion.
+- **Intelligent resource management**: automated farming + storage sorting/retrieval workflows.
 
 ---
 
-## 2) Meteor UX surfaces (where features appear)
+## 2) Meteor UX surfaces (for the next phases)
 
 ### 2.1 Baritone menu (Path Manager tab)
 
-Use for “immediate actions” + lightweight queue controls only:
+- Keep for immediate actions + lightweight queue controls.
 
-- Primary workstreams here: A (core actions), E (mine/goto primitives), F (queue controls)
-- Keep this screen minimal; larger systems live in dedicated tabs.
+### 2.2 Dedicated Right‑Shift tabs
 
-### 2.2 Right-Shift panels/tabs (Meteor GUI)
-
-Use for larger systems:
-
-- **AI Assistant** tab: plan/suggestions UI that emits allowlisted queued tasks (Workstream F/H).
-- **Swarm Control** tab: trust + targeting + broadcast of allowlisted tasks (Workstream B).
-- **Navigation/Explorer** tab: POIs/waypoints + toggles + performance caps (Workstream C).
-
-### 2.3 HUD overlays
-
-- HUD overlays implement Workstreams C/F (status, nav, exploration) and must be toggleable, throttled, and allocation-free on render hot paths.
+- **Navigation & Routing**: waypoints → routes → avoidance zones → route execution.
+- **Resource Manager**: farms, storage rules, deposit/retrieve, status/metrics.
+- **Swarm (extensions only)**: team coordination primitives and route/POI sharing (trust model remains required).
 
 ---
 
-## 3) Workstreams (each includes implementation + docs + tests + error checks)
+## 3) Roadmap additions (requested)
 
-### A) Smarter Baritone behavior + automation runtime (offline-first)
+## PHASE 2: ADVANCED PATHFINDING & MOVEMENT (Baritone Enhancement)
 
-**Implementation steps**
-0) Automation runtime v1 (the “moat”)
-   - Define cancelable `Task` primitives and a `TaskScheduler` (priorities, pause/resume, cooperative yield per tick).
-   - Add a shared `Blackboard` (inventory summary, hazards, POIs/waypoints, last failures).
-   - Define `RecoveryPolicy` hooks (stuck, low health, inventory full, unreachable goal) that can pause/cancel/retask safely.
-1) Recover routine v2
-   - Add stuck detection signals (progress delta, collision patterns, repeated replans).
-   - Recovery sequence: cancel → clear inputs → rotate/backstep/jump → replan.
-   - Add cooldown/backoff to avoid loops.
-2) Smart Goto v2
-   - Choose goal type by context (Y delta, hazards).
-   - Add optional safe approach radius.
-3) Safe Mode preset v2
-   - Curated bundle (fall risk, lava/water assumptions, conservative movement).
-   - Define a reversible application model (restore previous values or clearly “reset to defaults”).
-4) Goal-oriented automation v1 (optional, offline-first)
-   - Simple declarative goals that decompose into tasks (start with predictable behavior-tree style rules; keep GOAP-style planning as a later extension).
-   - Ensure all plans are explainable and interruptible.
-5) Combat-aware movement (optional)
-   - PvE-focused “keep distance / retreat” movement as a safe process (no combat-module coupling required initially).
+### 2.1 Predictive Pathfinding with Waypoints
 
-**Documentation**
-- Add a short “Smart Goto / Recover / Safe Mode” guide (what it changes, what it won’t do).
-- Add an “Automation runtime” doc: task lifecycle, cancel semantics, recovery policy, and safety rules.
+Feature: Waypoint Management & Multi-destination Routing
 
-**Testing**
-- Unit tests for deterministic decisions (goal selection heuristics, backoff policy).
-- In-game checklist for common stuck cases (doors, water edges, block collisions).
+**Waypoint System (remaining work)**
+- Waypoint categories (home, mine, farm, etc.)
+- Waypoint import/export (share routes)
 
-**Error/lint**
-- Ensure builds succeed and remove real compile warnings before merging.
+**Multi-Destination Routing**
+- Create route through multiple waypoints
+- Optimize route order (shortest path)
+- Calculate total distance/time
+- Resume from any point in route
+- Dynamic route creation based on resources
 
----
+**Smart Return-to-Home (remaining work)**
+- Configurable triggers beyond existing inventory/tool stops (e.g., low health)
+- Estimated arrival time display
+- Route safety assessment
 
-### B) Multi-Client Coordination (Swarm)
+**Advanced Features**
+- Avoidance zones (mark danger areas)
+- Preferred biome routing
+- Nether/End dimension awareness
+- Parkour movement integration
 
-**Vision**: One controller can coordinate many Meteor/Baritone clients at once (LAN first; Discord relay optional).
+### 2.2 Combat-Aware Movement (opt-in)
 
-**Security model (required)**
-- Slaves default to **reject all remote control**.
-- “Trusted controllers” list (UUIDs or shared keys).
-- Allowlisted command set (goto/mine/stop/queue/build primitives; no arbitrary execution).
-- Rate limit broadcasts and require schema versioning.
+Feature: Dynamic Movement During Combat
 
-**Implementation steps**
-1) Extend Meteor’s existing swarm/LAN mechanism
-   - Find current swarm transport and message format.
-   - Introduce a versioned, structured message schema.
-2) Swarm Control UI (Right‑Shift tab)
-   - Register trusted controllers.
-   - Show connected bots + status.
-   - Targeting: all / subset / tags.
-3) Swarm command relay
-   - Controller broadcasts safe commands (e.g., “everyone mine diamond_ore”).
-   - Slaves verify trust + allowlist before acting.
-4) Team coordination primitives (opt-in)
-   - Shared waypoints/POIs (export/import) and basic “status broadcast” (current task, health/inventory summary).
-   - Optional “claim” hints (avoid two bots mining the same target area) without enforcing ownership.
-5) Optional Discord relay (opt‑in)
-   - Prefer: Discord → n8n → local webhook → allowlisted actions.
+**Threat Assessment**
+- Real-time entity tracking
+- Damage prediction (incoming damage estimate)
+- Safe zone identification
+- Kite detection (moving away from threat)
 
-**Documentation**
-- “Swarm security” doc: trust model, allowlists, examples, warnings.
+**Combat Movement Modes**
+- STRAFE MODE: circle target while maintaining distance
+- KITE MODE: escape while dealing damage
+- CLUSTER MODE: group attacks together
+- RETREAT MODE: return to safe base
+- CRYSTAL MODE: position for crystal PvP (multiplayer-default OFF; no bypass/evasion)
 
-**Testing**
-- LAN test matrix: 1→1, 1→N, untrusted reject, malformed reject, replay/dup handling.
-- Fuzz/robustness tests for any message parsers.
+**Hitbox Prediction**
+- Predict enemy position next tick
+- Calculate safe movement paths
+- Block placing for protection
+- High-ground seeking
 
-**Error/lint**
-- Run Snyk (MCP) before shipping network-facing changes.
+**Integration Points**
+- Hooks into combat modules (KillAura, etc.)
+- Respects team members (doesn't harm teammates)
+- Server-lag compensation
 
 ---
 
-### C) Exploration & Mapping Tools
+## PHASE 3: INTELLIGENT RESOURCE MANAGEMENT (Farming/Automation)
 
-**Implementation steps**
-1) NewChunks/Explorer overlay
-   - Track chunk novelty signals client-side.
-   - Render overlay efficiently (avoid allocations per frame).
-2) Perception engine + world model v1
-   - Persist chunk facts keyed by dimension + chunk (novelty, cave likelihood, hazard score, POI signatures).
-   - Add bounded sampling caps; never scan unbounded radii on the client thread.
-3) Waypoints + Navigator/Compass
-   - Destination marker and direction indicator.
-   - Optional: show current Baritone goal.
-   - Waypoint categories, import/export, and avoidance/danger zones.
-   - Multi-destination routing (small N optimizer: greedy + 2-opt is enough).
-4) Baritone path integration
-   - Draw planned route in HUD (toggleable).
-5) CaveFinder overlay
-   - Bounded sampling approach; avoid scanning whole chunks constantly.
-6) Minimap/Coordinate HUD
-   - Start minimal: coordinate HUD + waypoint list; expand later if needed.
-7) POI detection (high impact)
-   - Structure/“base” signatures (block palette anomalies, lights underground, portals/obsidian frames, chest clusters).
-   - Auto-create POIs with confidence scores; allow user review/edit.
+### 3.1 Automated Farm Management
 
-**Documentation**
-- “Navigation Tools” guide + performance notes.
+Feature: Multi-type Automated Farming
 
-**Testing**
-- In-game validation: toggles, dimension switches, FPS impact on/off.
+**Farm Types Supported**
+- Wheat/Crops (detect growth, harvest at maturity)
+- Tree farming (detect logs, auto-fell with pathfinding)
+- Mob farming (auto-kill mobs with pathfinding)
+- Fish farming (auto-fish with click detection)
+- Villager trading (auto-trade for resources)
+- Custom farm types (user-defined patterns)
 
-**Error/lint**
-- Profile render hot paths (JFR) and cap sampling.
+**Crop Detection System**
+- Growth stage analysis (block metadata checking)
+- Maturity prediction
+- Harvest readiness assessment
+- Replanting automation
 
----
+**Farm Efficiency Metrics**
+- Items/hour tracking
+- Growth rate analysis
+- Optimal harvest timing
+- Bottleneck detection
+- Performance dashboard
 
-### D) Building & Creative Features
+**Multi-Farm Management**
+- Rotate between multiple farms
+- Optimize farm visit order
+- Load balancing (prioritize slower farms)
+- Return-to-home safety checks
 
-**Implementation steps**
-1) Schematic format strategy
-   - Decide first supported format: `.schematic` / `.schem` / `.litematic`.
-   - If relying on Litematica for interactive placement, define the integration boundary (import/build from file vs. cooperate with Litematica’s placement data).
-   - Add schematic analysis: resource requirement totals, build order priorities (foundation → structure → detail).
-2) Builder primitives
-   - Commands/actions: build shaft, stairs, bridge, clear area.
-3) ScaffoldWalk / InstantBuilder
-   - Place blocks under player while moving using normal placement cadence, strict throttles, and immediate cancel.
-4) TemplateTool
-   - Pick a block type and place repeatedly; auto-switch blocks/tools.
-5) Resume + verification
-   - Resume interrupted builds and verify placed blocks match expected; surface a concise diff.
-6) Material-aware building (optional)
-   - Pull required blocks from inventory/nearby chests (bounded search); block substitution rules if missing.
+**Advanced Features**
+- Bonemeal auto-application (if needed)
+- Custom harvest patterns
+- Redstone integration (auto-activate farm)
+- Crop rotation logic
 
-**Documentation**
-- “Building workflows” guide: file paths, survival constraints, safety.
+### 3.2 Smart Item Sorting & Storage
 
-**Testing**
-- In-game tests: survival inventory constraints, placement correctness, server compatibility settings.
+Feature: Automated Inventory & Chest Management
 
-**Error/lint**
-- Avoid fast-place loops that can soft-freeze clients/servers; enforce throttles.
+**Inventory Analyzer**
+- Real-time item tracking
+- Categorization system (tools, building, food, etc.)
+- Stack size awareness
+- Rarity/value scoring
+- Durability tracking
 
----
+**Automated Sorting**
+- Auto-deposit to matching chests
+- Custom sorting rules (user-defined)
+- Multi-chest routing (distributes to chests)
+- Stack combining (consolidates partial stacks)
+- Duplicate detection
 
-### E) Resource automation (mining, farming, storage)
+**Storage System Integration**
+- Linked chest discovery (auto-finds storage areas)
+- Item location tracking (where is X stored?)
+- Storage capacity monitoring
+- Low-stock alerts
+- Storage optimization suggestions
 
-**Implementation steps**
-1) Advanced mining foundation
-   - Ore detection (bounded radius) + vein clustering; prioritize by mode (efficiency/profit/tunnel/vein/custom).
-   - Inventory thresholds + auto-return to home waypoint (opt-in) + stop conditions.
-   - Hazard detection: lava, fall risk, suffocation, gravity blocks; safe responses must be bounded and reversible.
-   - Tool durability + enchant-aware tool selection (Fortune/Efficiency) + auto-swap.
-2) Branch mine mode
-   - Pattern generator (main hallway + side tunnels), configurable spacing/length.
-3) Vein mine
-   - Connected-component mining with radius limit + safety rules.
-4) AutoSmelt baseline
-   - Sort ores → furnaces → collect output, with stop conditions.
-5) Farming automation (optional)
-   - Crop harvest/replant, simple tree farm loop, and safety return conditions (health low / inventory full).
-6) Storage/sorting (optional)
-   - Auto-deposit/retrieve via rule-based categorization; track “where is X stored?” within a bounded storage area.
-7) Brewing/smelting tasks (optional)
-   - Keep as separate queued tasks.
-
-**Documentation**
-- “Resource automation” guide: mining modes, farming loops, storage rules, stop conditions, safety.
-
-**Testing**
-- Unit tests for pattern generators.
-- In-game runs on multiple terrain types.
-
-**Error/lint**
-- Ensure every automation has stop conditions and cannot loop forever.
+**Smart Retrieval**
+- Request specific item (auto-retrieves from storage)
+- Bulk operations (get 64x of item X)
+- Recipe-aware retrieval (get all components for recipe)
+- Emergency retrieval (if inventory full)
 
 ---
 
-### F) Meteor UX, controls, and profiles
+## 4) Milestones (future-only)
 
-**Implementation steps**
-1) AI Assistant tab
-   - Conversation/history (local) and structured suggestions.
-   - Suggestions become clickable allowlisted actions that enqueue tasks.
-   - Add a safety gate: show proposed actions and require confirm when actions are high-impact.
-2) Objective/status HUD
-   - Current objective, queue preview, bot state.
-3) Macro recorder
-   - Record/replay a safe subset of queued tasks (not raw input events), with deterministic ordering and stop conditions.
-4) Advanced config screens
-   - Expose tuning parameters without cluttering the Path Manager tab.
-5) Configuration profiles
-   - Built-in profiles (e.g., survival/server-safe/exploration) and per-server auto-apply (opt-in).
+### M0 — Waypoint categories + import/export
+- Categories/tags for waypoints and a shareable export format
+- Import/export UI in the new Navigation & Routing tab
 
-**Documentation**
-- “UI Tour” doc + hotkey bindings.
+### M1 — Multi-destination routing
+- Route objects (named routes with ordered legs)
+- Order optimization + total distance/time estimate
+- Resume from any waypoint in a route
 
-**Testing**
-- UI regression checklist: open/close screens, save settings, no crashes.
+### M2 — Smart return-to-home v2
+- Centralize triggers (health/tool/inventory/etc.) into a shared policy
+- ETA + lightweight route risk checks
 
-**Error/lint**
-- Avoid heavy reflective work per keystroke; cache metadata.
+### M3 — Avoidance zones + dimension/biome-aware routing
+- User-defined avoidance zones
+- Nether/End awareness and preferred-biome routing
 
----
+### M4 — Combat-aware movement foundation (opt-in)
+- Threat assessment + safe-zone identification
+- Strafe/kite/retreat modes; lag compensation
 
-### G) Performance & Reliability
+### M5 — Farm automation foundation
+- Crop detection + harvest/replant loop
+- Items/hour metrics + bounded scanning
 
-**Implementation steps**
-1) Profiling harness
-   - Add lightweight timing + guidance for JFR capture.
-2) Async boundaries
-   - AI/network I/O on workers with timeouts + cancellation.
-3) Caching
-   - Cache exploration results, render overlays, repeated calculations.
-4) Robust retries
-   - Backoff on transient failures.
-5) Observability (opt-in)
-   - Session metrics (tasks completed, blocks mined/hour, distance traveled/hour) and a lightweight dashboard.
-   - Structured logs for task failures and recovery decisions; exclude sensitive data by default.
-
-**Documentation**
-- “Performance knobs” + known expensive features.
-- “Metrics/logging” guide: what is recorded, retention expectations, how to disable/delete.
-
-**Testing**
-- Benchmark scenarios (pathing, mining, overlays on/off).
-
-**Error/lint**
-- No known compile errors left behind.
-
----
-
-### H) External Integrations (n8n, Discord, webhooks, voice)
-
-**Principle**: external calls must not block gameplay.
-
-**Implementation steps**
-0) Provider + schema baseline
-   - Define a provider interface and a versioned plan schema that produces only allowlisted actions (enqueue task, create waypoint/POI annotation, toggle safe modules).
-   - Cache responses and enforce rate limits.
-1) n8n bridge
-   - Define event payloads (in-game triggers) → webhook.
-   - Define allowlisted commands returned by n8n.
-2) Discord integration via n8n
-   - Discord message → n8n → local webhook → allowlisted actions.
-3) Gemini CLI via n8n
-   - n8n calls gemini-cli and returns structured suggestions.
-4) Voice commands (optional)
-   - Local STT → n8n/webhook → allowlisted actions.
-
-**Documentation**
-- Setup guide: flows, tokens, security.
-
-**Testing**
-- Timeout handling, malformed payload reject, replay protection.
-
-**Error/lint**
-- Snyk scan before shipping any HTTP server/client changes.
-
----
-
-## 4) Milestones (sequence)
-
-### M0 — Automation runtime foundation
-- Task scheduler + blackboard + cancellation semantics
-- Minimal recovery policy hooks and status reporting in UI
-
-### M1 — Smarter behavior hardening
-- Recover v2 + Smart Goto v2 + Safe Mode v2
-- Add unit tests for deterministic pieces
-
-### M2 — Swarm foundations
-- Extend LAN swarm + trust model
-- Swarm Control UI (basic)
-- Broadcast allowlisted Baritone tasks to selected bots
-
-### M3 — Navigation tools
-- NewChunks overlay + CaveFinder
-- Perception/world model v1 + POI detection
-- Waypoints/compass + Baritone goal/path HUD
-
-### M4 — Mining automation
-- Advanced mining foundation (ore detection + clustering + modes + hazards)
-- Branch mine + vein mine
-- AutoSmelt baseline
-
-### M5 — Building automation
-- Builder primitives + schematic import baseline
-- ScaffoldWalk/TemplateTool
-
-### M6 — External integrations (opt-in)
-- n8n bridge + Discord/webhooks
-- Optional AI assistant wiring
-
-### M7 — Performance pass (ongoing)
-- Profiling + hotspot fixes
-- Regression checklist updates
+### M6 — Storage sorting & retrieval foundation
+- Storage discovery + item location index
+- Rule-based deposit/retrieve + bulk operations
 
 ---
 
 ## 5) Acceptance criteria
 
-- Meteor UX is coherent: Baritone menu buttons + dedicated tabs for swarm/AI/nav.
-- Swarm cannot be abused by default: explicit trust + allowlists + rate limits.
-- Overlays don’t tank FPS; toggles respond immediately.
-- Mining/building automation has explicit stop conditions and is interruptible.
-- Every milestone compiles cleanly; tests added where practical; no ignored real errors.
-- Optional metrics/logging are opt-in and easy to disable.
-
----
-
-## Appendix — LLM feature intake (curated merge)
-
-The following high-level ideas from the LLM input are explicitly included in this plan (and merged into the relevant workstreams):
-
-- Automation runtime (task lifecycle + scheduler + blackboard) → Workstream A
-- Perception/world model + POI detection + persistent maps/heatmaps → Workstream C
-- Advanced mining (ore clustering, priority modes, inventory return, hazard handling, enchant-aware tools) → Workstream E
-- Schematic-aware building (analysis, resume, verification, substitutions) → Workstream D
-- Farming + storage/sorting → Workstream E
-- Structured AI integration (providers + plan schema + safety gate) → Workstreams F/H
-
-Explicitly excluded: any feature framed as bypassing server anti-cheat or evasion.
+- Features are bounded: no unbounded scanning, no render allocations in hot paths.
+- Return-to-home is consistent across automations and never loops forever.
+- Combat-aware movement is opt-in and multiplayer-default OFF where commonly disallowed.
+- Farming/sorting are interruptible and have explicit stop conditions.
