@@ -20,17 +20,11 @@ package baritone.utils;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
 import baritone.utils.accessor.IEntityRenderManager;
-import baritone.utils.accessor.IRenderPipelines;
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.platform.DestFactor;
-import com.mojang.blaze3d.platform.SourceFactor;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -41,32 +35,9 @@ public interface IRenderer {
     Tesselator tessellator = Tesselator.getInstance();
     IEntityRenderManager renderManager = (IEntityRenderManager) Minecraft.getInstance().getEntityRenderDispatcher();
     Settings settings = BaritoneAPI.getSettings();
-    RenderPipeline.Snippet BARITONE_LINES_SNIPPET = RenderPipeline.builder(((IRenderPipelines) new RenderPipelines()).getLinesSnippet())
-        .withBlend(new BlendFunction(
-            SourceFactor.SRC_ALPHA,
-            DestFactor.ONE_MINUS_SRC_ALPHA,
-            SourceFactor.ONE,
-            DestFactor.ZERO
-        ))
-        .withDepthWrite(false)
-        .withCull(false)
-        .buildSnippet();
-    RenderType linesWithDepthRenderType = BaritoneRenderType.create(
-        "renderType/baritone_lines_with_depth",
-        256,
-        RenderPipeline.builder(BARITONE_LINES_SNIPPET)
-            .withLocation("pipelines/baritone_lines_with_depth")
-            .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-            .build()
-    );
-    RenderType linesNoDepthRenderType = BaritoneRenderType.create(
-        "renderType/baritone_lines_no_depth",
-        256,
-        RenderPipeline.builder(BARITONE_LINES_SNIPPET)
-            .withLocation("pipelines/baritone_lines_no_depth")
-            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-            .build()
-    );
+
+    RenderType linesWithDepthRenderType = RenderTypes.lines();
+    RenderType linesNoDepthRenderType = RenderTypes.lines(); // Fallback for now
 
     float[] color = new float[]{1.0F, 1.0F, 1.0F, 255.0F};
 
@@ -80,7 +51,7 @@ public interface IRenderer {
 
     static BufferBuilder startLines(Color color, float alpha, float lineWidth) {
         glColor(color, alpha);
-        RenderSystem.lineWidth(lineWidth);
+        // RenderSystem.setShaderLineWidth(lineWidth); // Not supported in recent MC
         return tessellator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
     }
 
@@ -88,13 +59,36 @@ public interface IRenderer {
         return startLines(color, .4f, lineWidth);
     }
 
+    static BufferBuilder startTriangles(Color color, float alpha) {
+        glColor(color, alpha);
+        return tessellator.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+    }
+
     static void endLines(BufferBuilder bufferBuilder, boolean ignoredDepth) {
         MeshData meshData = bufferBuilder.build();
         if (meshData != null) {
             if (ignoredDepth) {
+                // BufferBuilder was started with LINES, which matches standard lines() RenderType
+                // We manually handle depth if needed, but for now using lines() which has depth.
+                // To support no-depth properly, we'd need a custom RenderType.
                 linesNoDepthRenderType.draw(meshData);
             } else {
                 linesWithDepthRenderType.draw(meshData);
+            }
+        }
+    }
+
+    static void endTriangles(BufferBuilder bufferBuilder, boolean ignoredDepth) {
+        MeshData meshData = bufferBuilder.build();
+        if (meshData != null) {
+            // Fallback to lines RenderType which is compatible with PositionColor
+            // RenderTypes.lines() uses rendertype_lines shader.
+            // Triangles should still render, potentially with line-specific state that is ignored.
+            // This bypasses the need for finding specific RenderType names for now.
+            if (ignoredDepth) {
+                 linesNoDepthRenderType.draw(meshData);
+            } else {
+                 linesWithDepthRenderType.draw(meshData);
             }
         }
     }

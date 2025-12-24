@@ -44,7 +44,7 @@ public final class MetricsCommand extends Command {
                     }
                     if (started) {
                         recorder.record("session_start", obj -> {
-                            obj.addProperty("mc_version", SharedConstants.getCurrentVersion().name());
+                            obj.addProperty("mc_version", SharedConstants.getCurrentVersion().toString());
                             obj.addProperty("baritone_version", baritoneVersion());
 
                             obj.addProperty("setting_primaryTimeoutMS", Baritone.settings().primaryTimeoutMS.value);
@@ -55,7 +55,7 @@ public final class MetricsCommand extends Command {
                             obj.addProperty("setting_elytraTermsAccepted", Baritone.settings().elytraTermsAccepted.value);
 
                             if (ctx.player() != null) {
-                                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                                 obj.addProperty("creative", ctx.player().getAbilities().instabuild);
                             }
                         });
@@ -99,7 +99,7 @@ public final class MetricsCommand extends Command {
                     recorder.record("mark", obj -> {
                         obj.addProperty("label", markLabel);
                         if (ctx.player() != null) {
-                            obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                            obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                             obj.addProperty("creative", ctx.player().getAbilities().instabuild);
                         }
                     });
@@ -143,7 +143,7 @@ public final class MetricsCommand extends Command {
                     }
                     if (started) {
                         recorder.record("session_start", obj -> {
-                            obj.addProperty("mc_version", SharedConstants.getCurrentVersion().name());
+                            obj.addProperty("mc_version", SharedConstants.getCurrentVersion().toString());
                             obj.addProperty("baritone_version", baritoneVersion());
 
                             obj.addProperty("setting_primaryTimeoutMS", Baritone.settings().primaryTimeoutMS.value);
@@ -154,7 +154,7 @@ public final class MetricsCommand extends Command {
                             obj.addProperty("setting_elytraTermsAccepted", Baritone.settings().elytraTermsAccepted.value);
 
                             if (ctx.player() != null) {
-                                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                                 obj.addProperty("creative", ctx.player().getAbilities().instabuild);
                             }
                         });

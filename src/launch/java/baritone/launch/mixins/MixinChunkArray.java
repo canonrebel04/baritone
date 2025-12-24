@@ -26,70 +26,67 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.LevelChunk;
 
-@Mixin(targets = "net.minecraft.client.multiplayer.ClientChunkCache$Storage")
+@Mixin(targets = "net.minecraft.class_631$class_3681")
 public abstract class MixinChunkArray implements IChunkArray {
     @Final
     @Shadow
-    AtomicReferenceArray<LevelChunk> chunks;
+    AtomicReferenceArray<LevelChunk> field_16251; // chunks
     @Final
     @Shadow
-    int chunkRadius;
-
-    @Final
-    @Shadow
-    private int viewRange;
-    @Shadow
-    int viewCenterX;
-    @Shadow
-    int viewCenterZ;
-    @Shadow
-    int chunkCount;
+    int field_16253; // radius
 
     @Shadow
-    abstract boolean inRange(int x, int z);
+    int field_19204; // centerChunkX
+    @Shadow
+    int field_19205; // centerChunkZ
+    @Shadow
+    int field_19143; // loadedChunkCount
 
     @Shadow
-    abstract int getIndex(int x, int z);
+    abstract boolean method_16034(int x, int z); // isInRadius
 
     @Shadow
-    protected abstract void replace(int index, LevelChunk chunk);
+    abstract int method_16027(int x, int z); // getIndex
+
+    @Shadow
+    protected abstract void method_16031(int index, LevelChunk chunk); // set
 
     @Override
     public int centerX() {
-        return viewCenterX;
+        return field_19204;
     }
 
     @Override
     public int centerZ() {
-        return viewCenterZ;
+        return field_19205;
     }
 
     @Override
     public int viewDistance() {
-        return chunkRadius;
+        return field_16253;
     }
 
     @Override
     public AtomicReferenceArray<LevelChunk> getChunks() {
-        return chunks;
+        return field_16251;
     }
 
     @Override
     public void copyFrom(IChunkArray other) {
-        viewCenterX = other.centerX();
-        viewCenterZ = other.centerZ();
+        field_19204 = other.centerX();
+        field_19205 = other.centerZ();
 
         AtomicReferenceArray<LevelChunk> copyingFrom = other.getChunks();
         for (int k = 0; k < copyingFrom.length(); ++k) {
             LevelChunk chunk = copyingFrom.get(k);
             if (chunk != null) {
                 ChunkPos chunkpos = chunk.getPos();
-                if (inRange(chunkpos.x, chunkpos.z)) {
-                    int index = getIndex(chunkpos.x, chunkpos.z);
-                    if (chunks.get(index) != null) {
+                if (method_16034(chunkpos.x, chunkpos.z)) {
+                    int index = method_16027(chunkpos.x, chunkpos.z);
+                    if (field_16251.get(index) != null) {
                         throw new IllegalStateException("Doing this would mutate the client's REAL loaded chunks?!");
                     }
-                    replace(index, chunk);
+                    method_16031(index, chunk);
                 }
             }
         }

@@ -5,9 +5,7 @@
 
   "name": "Baritone",
   "description": "Google Maps for Blockgame",
-  "authors": [
-    "leijurv", "Brady"
-  ],
+  "authors": ["leijurv", "Brady"],
   "contact": {
     "homepage": "https://github.com/cabaletta/baritone",
     "sources": "https://github.com/cabaletta/baritone",
@@ -18,14 +16,11 @@
   "icon": "assets/baritone/icon.png",
 
   "environment": "*",
-  "entrypoints": {
-  },
-  "mixins": [
-      "mixins.baritone-meteor.json"
-  ],
+  "entrypoints": {},
+  "mixins": ["mixins.baritone-meteor.json"],
   "depends": {
     "fabricloader": ">=0.14.22",
-    "minecraft": ["1.21.9", "1.21.10"]
+    "minecraft": ">=1.21.11"
   },
   "custom": {
     "modmenu": {

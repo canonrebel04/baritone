@@ -83,45 +83,48 @@ public final class PathRenderer implements IRenderer {
             return;
         }
 
-        if (goal != null && settings.renderGoal.value) {
-            drawGoal(event.getModelViewStack(), ctx, goal, partialTicks, settings.colorGoalBox.value);
-        }
-
-        if (!settings.renderPath.value) {
-            return;
-        }
-
-        PathExecutor current = behavior.getCurrent(); // this should prevent most race conditions?
-        PathExecutor next = behavior.getNext(); // like, now it's not possible for current!=null to be true, then suddenly false because of another thread
-        if (current != null && settings.renderSelectionBoxes.value) {
-            drawManySelectionBoxes(event.getModelViewStack(), ctx.player(), current.toBreak(), settings.colorBlocksToBreak.value);
-            drawManySelectionBoxes(event.getModelViewStack(), ctx.player(), current.toPlace(), settings.colorBlocksToPlace.value);
-            drawManySelectionBoxes(event.getModelViewStack(), ctx.player(), current.toWalkInto(), settings.colorBlocksToWalkInto.value);
-        }
-
-        //drawManySelectionBoxes(player, Collections.singletonList(behavior.pathStart()), partialTicks, Color.WHITE);
-
-        // Render the current path, if there is one
-        if (current != null && current.getPath() != null) {
-            int renderBegin = Math.max(current.getPosition() - 3, 0);
-            drawPath(event.getModelViewStack(), current.getPath().positions(), renderBegin, settings.colorCurrentPath.value, settings.fadePath.value, 10, 20);
-        }
-
-        if (next != null && next.getPath() != null) {
-            drawPath(event.getModelViewStack(), next.getPath().positions(), 0, settings.colorNextPath.value, settings.fadePath.value, 10, 20);
-        }
-
-        // If there is a path calculation currently running, render the path calculation process
-        behavior.getInProgress().ifPresent(currentlyRunning -> {
-            currentlyRunning.bestPathSoFar().ifPresent(p -> {
-                drawPath(event.getModelViewStack(), p.positions(), 0, settings.colorBestPathSoFar.value, settings.fadePath.value, 10, 20);
+        // Standard Rendering (Matrix hacks removed)
+        {
+            if (goal != null && settings.renderGoal.value) {
+                drawGoal(event.getModelViewStack(), ctx, goal, partialTicks, settings.colorGoalBox.value);
+            }
+    
+            if (!settings.renderPath.value) {
+                return;
+            }
+    
+            PathExecutor current = behavior.getCurrent(); // this should prevent most race conditions?
+            PathExecutor next = behavior.getNext(); // like, now it's not possible for current!=null to be true, then suddenly false because of another thread
+            if (current != null && settings.renderSelectionBoxes.value) {
+                drawManySelectionBoxes(event.getModelViewStack(), ctx.player(), current.toBreak(), settings.colorBlocksToBreak.value);
+                drawManySelectionBoxes(event.getModelViewStack(), ctx.player(), current.toPlace(), settings.colorBlocksToPlace.value);
+                drawManySelectionBoxes(event.getModelViewStack(), ctx.player(), current.toWalkInto(), settings.colorBlocksToWalkInto.value);
+            }
+    
+            //drawManySelectionBoxes(player, Collections.singletonList(behavior.pathStart()), partialTicks, Color.WHITE);
+    
+            // Render the current path, if there is one
+            if (current != null && current.getPath() != null) {
+                int renderBegin = Math.max(current.getPosition() - 3, 0);
+                drawPath(event.getModelViewStack(), current.getPath().positions(), renderBegin, settings.colorCurrentPath.value, settings.fadePath.value, 10, 20);
+            }
+    
+            if (next != null && next.getPath() != null) {
+                drawPath(event.getModelViewStack(), next.getPath().positions(), 0, settings.colorNextPath.value, settings.fadePath.value, 10, 20);
+            }
+    
+            // If there is a path calculation currently running, render the path calculation process
+            behavior.getInProgress().ifPresent(currentlyRunning -> {
+                currentlyRunning.bestPathSoFar().ifPresent(p -> {
+                    drawPath(event.getModelViewStack(), p.positions(), 0, settings.colorBestPathSoFar.value, settings.fadePath.value, 10, 20);
+                });
+    
+                currentlyRunning.pathToMostRecentNodeConsidered().ifPresent(mr -> {
+                    drawPath(event.getModelViewStack(), mr.positions(), 0, settings.colorMostRecentConsidered.value, settings.fadePath.value, 10, 20);
+                    drawManySelectionBoxes(event.getModelViewStack(), ctx.player(), Collections.singletonList(mr.getDest()), settings.colorMostRecentConsidered.value);
+                });
             });
-
-            currentlyRunning.pathToMostRecentNodeConsidered().ifPresent(mr -> {
-                drawPath(event.getModelViewStack(), mr.positions(), 0, settings.colorMostRecentConsidered.value, settings.fadePath.value, 10, 20);
-                drawManySelectionBoxes(event.getModelViewStack(), ctx.player(), Collections.singletonList(mr.getDest()), settings.colorMostRecentConsidered.value);
-            });
-        });
+        }
     }
 
     public static void drawPath(PoseStack stack, List<BetterBlockPos> positions, int startIndex, Color color, boolean fadeOut, int fadeStart0, int fadeEnd0) {
@@ -129,44 +132,39 @@ public final class PathRenderer implements IRenderer {
     }
 
     public static void drawPath(PoseStack stack, List<BetterBlockPos> positions, int startIndex, Color color, boolean fadeOut, int fadeStart0, int fadeEnd0, double offset) {
-        BufferBuilder bufferBuilder = IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value);
+        // Modern Path Rendering: Convert to Vec3, Spline Interpolate, and Render Ribbon
+        
+        if (positions.isEmpty()) return;
 
-        int fadeStart = fadeStart0 + startIndex;
-        int fadeEnd = fadeEnd0 + startIndex;
+        java.util.List<net.minecraft.world.phys.Vec3> splinePoints = new java.util.ArrayList<>();
+        
+        stack.pushPose();
+        // Use World Coordinates directly. PoseStack is Identity.
+        // NOTE: High precision loss possible at >100k blocks. 
+        // But ensures no "Flying Lines" from double-subtraction.
 
-        for (int i = startIndex, next; i < positions.size() - 1; i = next) {
-            BetterBlockPos start = positions.get(i);
-            BetterBlockPos end = positions.get(next = i + 1);
-
-            int dirX = end.x - start.x;
-            int dirY = end.y - start.y;
-            int dirZ = end.z - start.z;
-
-            while (next + 1 < positions.size() && (!fadeOut || next + 1 < fadeStart) &&
-                    (dirX == positions.get(next + 1).x - end.x &&
-                            dirY == positions.get(next + 1).y - end.y &&
-                            dirZ == positions.get(next + 1).z - end.z)) {
-                end = positions.get(++next);
-            }
-
-            if (fadeOut) {
-                float alpha;
-
-                if (i <= fadeStart) {
-                    alpha = 0.4F;
-                } else {
-                    if (i > fadeEnd) {
-                        break;
-                    }
-                    alpha = 0.4F * (1.0F - (float) (i - fadeStart) / (float) (fadeEnd - fadeStart));
-                }
-                IRenderer.glColor(color, alpha);
-            }
-
-            emitPathLine(bufferBuilder, stack, start.x, start.y, start.z, end.x, end.y, end.z, offset);
+        for (int i = startIndex; i < positions.size(); i++) {
+             BetterBlockPos pos = positions.get(i);
+             splinePoints.add(new net.minecraft.world.phys.Vec3(
+                 pos.x + offset,
+                 pos.y + offset,
+                 pos.z + offset
+             ));
         }
 
-        IRenderer.endLines(bufferBuilder, settings.renderPathIgnoreDepth.value);
+        // 2. Interpolate
+        int quality = 4; // Points per segment
+        java.util.List<net.minecraft.world.phys.Vec3> smoothPath = CatmullRomSpline.interpolate(splinePoints, quality);
+
+        // 3. Render Ribbon
+        // We use IRenderer.startTriangles to get a buffer in Triangle mode.
+        BufferBuilder bufferBuilder = IRenderer.startTriangles(color, 0.5f);
+        
+        RibbonRenderer.renderRibbon(bufferBuilder, stack, smoothPath, 0.5f, color);
+        
+        IRenderer.endTriangles(bufferBuilder, settings.renderPathIgnoreDepth.value);
+        
+        stack.popPose();
     }
 
     private static void emitPathLine(BufferBuilder bufferBuilder, PoseStack stack, double x1, double y1, double z1, double x2, double y2, double z2, double offset) {
@@ -176,25 +174,55 @@ public final class PathRenderer implements IRenderer {
         double vpY = posY();
         double vpZ = posZ();
         boolean renderPathAsFrickinThingy = !settings.renderPathAsLine.value;
-
-        IRenderer.emitLine(bufferBuilder, stack,
-                x1 + offset - vpX, y1 + offset - vpY, z1 + offset - vpZ,
-                x2 + offset - vpX, y2 + offset - vpY, z2 + offset - vpZ
+        
+        double startX = x1 + offset - vpX;
+        double startY = y1 + offset - vpY;
+        double startZ = z1 + offset - vpZ;
+        
+        double endX = x2 + offset - vpX;
+        double endY = y2 + offset - vpY;
+        double endZ = z2 + offset - vpZ;
+        
+        // Use PoseStack translation to set the origin to start position
+        // This keeps vertex coordinates small/zero (preserving precision)
+        stack.pushPose();
+        stack.translate((float)startX, (float)startY, (float)startZ);
+        
+        // Relative end position
+        float rX2 = (float)(endX - startX);
+        float rY2 = (float)(endY - startY);
+        float rZ2 = (float)(endZ - startZ);
+        
+        IRenderer.emitLine(bufferBuilder, stack, 
+            0, 0, 0, 
+            rX2, rY2, rZ2
         );
+        
         if (renderPathAsFrickinThingy) {
-            IRenderer.emitLine(bufferBuilder, stack,
-                    x2 + offset - vpX, y2 + offset - vpY, z2 + offset - vpZ,
-                    x2 + offset - vpX, y2 + extraOffset - vpY, z2 + offset - vpZ
-            );
-            IRenderer.emitLine(bufferBuilder, stack,
-                    x2 + offset - vpX, y2 + extraOffset - vpY, z2 + offset - vpZ,
-                    x1 + offset - vpX, y1 + extraOffset - vpY, z1 + offset - vpZ
-            );
-            IRenderer.emitLine(bufferBuilder, stack,
-                    x1 + offset - vpX, y1 + extraOffset - vpY, z1 + offset - vpZ,
-                    x1 + offset - vpX, y1 + offset - vpY, z1 + offset - vpZ
-            );
+           float extra = (float)(extraOffset - offset);
+           // Lines for the "FrickinThingy" (Vertical bits)
+           // Relative to start position (which is at origin now)
+           
+           // Vertical line at End
+           IRenderer.emitLine(bufferBuilder, stack,
+               rX2, rY2, rZ2,
+               rX2, rY2 + extra, rZ2
+           );
+           
+           // Horizontal top line back to Start
+           IRenderer.emitLine(bufferBuilder, stack,
+               rX2, rY2 + extra, rZ2,
+               0, extra, 0
+           );
+           
+           // Vertical line at Start
+           IRenderer.emitLine(bufferBuilder, stack,
+               0, extra, 0,
+               0, 0, 0
+           );
         }
+        
+        stack.popPose();
     }
 
     public static void drawManySelectionBoxes(PoseStack stack, Entity player, Collection<BlockPos> positions, Color color) {

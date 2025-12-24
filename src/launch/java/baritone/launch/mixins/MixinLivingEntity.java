@@ -57,7 +57,7 @@ public abstract class MixinLivingEntity extends Entity {
     }
 
     @Inject(
-            method = "jumpFromGround",
+            method = "method_6043",
             at = @At("HEAD")
     )
     private void preMoveRelative(CallbackInfo ci) {
@@ -68,10 +68,10 @@ public abstract class MixinLivingEntity extends Entity {
     }
 
     @Redirect(
-            method = "jumpFromGround",
+            method = "method_6043",
             at = @At(
                     value = "INVOKE",
-                    target = "net/minecraft/world/entity/LivingEntity.getYRot()F"
+                    target = "Lnet/minecraft/class_1309;method_36454()F"
             )
     )
     private float overrideYaw(LivingEntity self) {
@@ -82,10 +82,10 @@ public abstract class MixinLivingEntity extends Entity {
     }
 
     @Inject(
-            method = "updateFallFlyingMovement",
+            method = "method_61430",
             at = @At(
                     value = "INVOKE",
-                    target = "net/minecraft/world/entity/LivingEntity.getLookAngle()Lnet/minecraft/world/phys/Vec3;"
+                    target = "Lnet/minecraft/class_1309;method_5720()Lnet/minecraft/class_243;"
             )
     )
     private void onPreElytraMove(Vec3 direction, final CallbackInfoReturnable<Vec3> cir) {
@@ -98,10 +98,10 @@ public abstract class MixinLivingEntity extends Entity {
     }
 
     @Inject(
-            method = "travelFallFlying",
+            method = "method_61417",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/world/entity/LivingEntity;move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V",
+                    target = "Lnet/minecraft/class_1309;method_5784(Lnet/minecraft/class_1313;Lnet/minecraft/class_243;)V",
                     shift = At.Shift.AFTER
             )
     )

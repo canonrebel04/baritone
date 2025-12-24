@@ -24,10 +24,12 @@ import baritone.utils.accessor.IGuiScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Style;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static baritone.api.command.IBaritoneChatControl.FORCE_COMMAND_PREFIX;
 
@@ -35,12 +37,13 @@ import static baritone.api.command.IBaritoneChatControl.FORCE_COMMAND_PREFIX;
 public abstract class MixinScreen implements IGuiScreen {
 
     //TODO: switch to enum extention with mixin 9.0 or whenever Mumfrey gets around to it
-    @Inject(method = "handleClickEvent", at = @At(value = "HEAD"), cancellable = true)
-    public void handleCustomClickEvent(final Minecraft minecraft, final ClickEvent clickEvent, final CallbackInfo ci) {
+    @Inject(method = "defaultHandleClickEvent", at = @At(value = "HEAD"), cancellable = true)
+    private static void onHandleClickEvent(ClickEvent clickEvent, Minecraft minecraft, Screen screen, CallbackInfo ci) {
         if (clickEvent == null) {
             return;
         }
-        if (!(clickEvent instanceof ClickEvent.RunCommand(String command))) return;
+        if (!(clickEvent instanceof ClickEvent.RunCommand)) return;
+        String command = ((ClickEvent.RunCommand) clickEvent).command();
         if (!command.startsWith(FORCE_COMMAND_PREFIX)) {
             return;
         }

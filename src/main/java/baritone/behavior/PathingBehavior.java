@@ -170,8 +170,8 @@ public final class PathingBehavior extends Behavior implements IPathingBehavior,
                     queuePathEvent(PathEvent.AT_GOAL);
                     next = null;
                     if (Baritone.settings().disconnectOnArrival.value) {
-                        if (ctx.world() instanceof ClientLevel clientLevel) {
-                            clientLevel.disconnect(Component.literal("[Baritone] Arrived at goal!"));
+                        if (ctx.minecraft().getConnection() != null && ctx.minecraft().getConnection().getConnection() != null) {
+                            ctx.minecraft().getConnection().getConnection().disconnect(Component.literal("[Baritone] Arrived at goal!"));
                         }
                     }
                     return;
@@ -548,7 +548,7 @@ public final class PathingBehavior extends Behavior implements IPathingBehavior,
                 obj.addProperty("segment", isPlanAhead ? "next" : "current");
 
                 if (ctx.player() != null) {
-                    obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                    obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                     obj.addProperty("creative", ctx.player().getAbilities().instabuild);
                     obj.addProperty("player_on_ground", ctx.player().onGround());
                     obj.addProperty("player_flying", ctx.player().getAbilities().flying);
@@ -659,7 +659,7 @@ public final class PathingBehavior extends Behavior implements IPathingBehavior,
                         obj.addProperty("segment", isPlanAhead ? "next" : "current");
 
                         if (ctx.player() != null) {
-                            obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                            obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                             obj.addProperty("creative", ctx.player().getAbilities().instabuild);
                         }
 

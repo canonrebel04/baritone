@@ -21,7 +21,7 @@ import baritone.Baritone;
 import baritone.api.cache.IWorldProvider;
 import baritone.api.utils.IPlayerContext;
 import net.minecraft.client.multiplayer.ServerData;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
@@ -110,7 +110,24 @@ public class WorldProvider implements IWorldProvider {
     }
 
     private Path getWorldDataDirectory(Path parent, Level world) {
-        ResourceLocation dimId = world.dimension().location();
+        String dimStr = world.dimension().toString(); // ResourceKey[minecraft:dimension / minecraft:overworld] or similar
+        // Try to parse out the ID part. This is brittle but effective if API lacks direct method.
+        Identifier dimId = null;
+        if (dimStr.contains("/")) {
+             String idPart = dimStr.substring(dimStr.lastIndexOf("/") + 1).replace("]", "").trim();
+             dimId = Identifier.tryParse(idPart);
+        } else {
+             // Fallback
+             if (dimStr.startsWith("ResourceKey[")) {
+                 String content = dimStr.substring(dimStr.indexOf("[")+1, dimStr.lastIndexOf("]"));
+                 dimId = Identifier.tryParse(content);
+             }
+        }
+        
+        if (dimId == null) {
+            dimId = Identifier.tryParse("minecraft:overworld");
+        }
+
         int height = world.dimensionType().logicalHeight();
         return parent.resolve(dimId.getNamespace()).resolve(dimId.getPath() + "_" + height);
     }
@@ -126,7 +143,19 @@ public class WorldProvider implements IWorldProvider {
 
         // If there is an integrated server running (Aka Singleplayer) then do magic to find the world save file
         if (ctx.minecraft().hasSingleplayerServer()) {
-            worldDir = ctx.minecraft().getSingleplayerServer().getWorldPath(LevelResource.ROOT);
+            // worldDir = ctx.minecraft().getSingleplayerServer().getWorldPath(LevelResource.ROOT);
+            // Use reflection to avoid remapping issues (getWorldPath -> method_27050)
+            try {
+                java.lang.reflect.Method m;
+                try {
+                    m = net.minecraft.server.MinecraftServer.class.getMethod("method_27050", LevelResource.class);
+                } catch (NoSuchMethodException e) {
+                    m = net.minecraft.server.MinecraftServer.class.getMethod("getWorldPath", LevelResource.class);
+                }
+                worldDir = (Path) m.invoke(ctx.minecraft().getSingleplayerServer(), LevelResource.ROOT);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to get world path", e);
+            }
 
             // Gets the "depth" of this directory relative to the game's run directory, 2 is the location of the world
             if (worldDir.relativize(ctx.minecraft().gameDirectory.toPath()).getNameCount() != 2) {

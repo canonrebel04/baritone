@@ -175,6 +175,7 @@ public interface Helper {
         if (logAsToast) {
             logToast(getPrefix(), component);
         } else {
+            baritone.api.utils.BaritoneLogger.info(component.getString());
             Minecraft.getInstance().execute(() -> BaritoneAPI.getSettings().logger.value.accept(component));
         }
     }

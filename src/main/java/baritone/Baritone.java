@@ -105,6 +105,12 @@ public class Baritone implements IBaritone {
             } catch (IOException ignored) {}
         }
 
+        // Initialize Logging
+        baritone.api.utils.BaritoneLogger.setup(mc.gameDirectory);
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            baritone.api.utils.BaritoneLogger.error("Uncaught exception in thread " + t.getName(), e);
+        });
+
         this.metricsRecorder = new MetricsRecorder(this.directory);
 
         // Define this before behaviors try and get it, or else it will be null and the builds will fail!

@@ -281,9 +281,9 @@ public final class MetricsRouteRunner extends Behavior implements Helper {
         }
 
         int fireworks = 0;
-        NonNullList<ItemStack> inv = ctx.player().getInventory().getNonEquipmentItems();
-        for (int i = 0; i < inv.size(); i++) {
-            ItemStack st = inv.get(i);
+        // NonNullList<ItemStack> inv = ctx.player().getInventory().items; // This will fail compilation, we need to iterate or use getter
+        for (int i = 0; i < ctx.player().getInventory().getContainerSize(); i++) {
+            ItemStack st = ctx.player().getInventory().getItem(i);
             if (ElytraBehavior.isFireworks(st)) {
                 fireworks += st.getCount();
             }

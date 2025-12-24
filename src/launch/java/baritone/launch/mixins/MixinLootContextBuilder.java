@@ -19,9 +19,10 @@ package baritone.launch.mixins;
 
 import baritone.api.utils.BlockOptionalMeta;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.ReloadableServerRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.server.ReloadableServerRegistries;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -32,15 +33,24 @@ public abstract class MixinLootContextBuilder {
 
     @Shadow public abstract ServerLevel getLevel();
 
-    @Redirect(method = "create", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;reloadableRegistries()Lnet/minecraft/server/ReloadableServerRegistries$Holder;"))
-    private ReloadableServerRegistries.Holder create(MinecraftServer instance) {
-        if (instance != null) {
-            return instance.reloadableRegistries();
+    @Redirect(method = "method_309", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;method_58576()Lnet/minecraft/class_9383$class_9385;"))
+    public net.minecraft.server.ReloadableServerRegistries.Holder reloadableRegistries(MinecraftServer instance) {
+        if (getLevel() instanceof BlockOptionalMeta.ServerLevelStub) {
+            BlockOptionalMeta.ServerLevelStub sls = (BlockOptionalMeta.ServerLevelStub) getLevel();
+            return sls.lookup();
         }
-        if (getLevel() instanceof BlockOptionalMeta.ServerLevelStub sls) {
-            return sls.holder();
+        // return instance.reloadableRegistries();
+        try {
+            java.lang.reflect.Method m;
+            try {
+                m = net.minecraft.server.MinecraftServer.class.getMethod("method_58576");
+            } catch (NoSuchMethodException e) {
+                m = net.minecraft.server.MinecraftServer.class.getMethod("reloadableRegistries");
+            }
+            return (net.minecraft.server.ReloadableServerRegistries.Holder) m.invoke(instance);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke reloadableRegistries", e);
         }
-        return null;
     }
 
 }

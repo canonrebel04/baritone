@@ -108,7 +108,9 @@ public final class CustomGoalProcess extends BaritoneProcessHelper implements IC
                     onLostControl(); // we're there xd
                     if (Baritone.settings().disconnectOnArrival.value) {
                         if (ctx.world() instanceof ClientLevel clientLevel) {
-                            clientLevel.disconnect(Component.literal("[Baritone] Arrived at goal!"));
+                            if (net.minecraft.client.Minecraft.getInstance().getConnection() != null) {
+                                net.minecraft.client.Minecraft.getInstance().getConnection().getConnection().disconnect(Component.literal("[Baritone] Arrived at goal!"));
+                            }
                         }
                     }
                     if (Baritone.settings().notificationOnPathComplete.value) {

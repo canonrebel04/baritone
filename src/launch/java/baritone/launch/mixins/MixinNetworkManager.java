@@ -49,7 +49,7 @@ public class MixinNetworkManager {
     private PacketFlow receiving;
 
     @Inject(
-            method = "sendPacket",
+            method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/channel/ChannelFutureListener;Z)V",
             at = @At("HEAD")
     )
     private void preDispatchPacket(final Packet<?> packet, final ChannelFutureListener channelFutureListener, final boolean flush, final CallbackInfo ci) {
@@ -65,7 +65,7 @@ public class MixinNetworkManager {
     }
 
     @Inject(
-            method = "sendPacket",
+            method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/channel/ChannelFutureListener;Z)V",
             at = @At("RETURN")
     )
     private void postDispatchPacket(Packet<?> packet, ChannelFutureListener packetSendListener, boolean flush, CallbackInfo ci) {
@@ -81,10 +81,10 @@ public class MixinNetworkManager {
     }
 
     @Inject(
-            method = "channelRead0",
+            method = "method_10770",
             at = @At(
                     value = "INVOKE",
-                    target = "net/minecraft/network/Connection.genericsFtw(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;)V"
+                    target = "Lnet/minecraft/class_2535;method_10759(Lnet/minecraft/class_2596;Lnet/minecraft/class_2547;)V"
             )
     )
     private void preProcessPacket(ChannelHandlerContext context, Packet<?> packet, CallbackInfo ci) {
@@ -99,7 +99,7 @@ public class MixinNetworkManager {
     }
 
     @Inject(
-            method = "channelRead0",
+            method = "method_10770",
             at = @At("RETURN")
     )
     private void postProcessPacket(ChannelHandlerContext context, Packet<?> packet, CallbackInfo ci) {

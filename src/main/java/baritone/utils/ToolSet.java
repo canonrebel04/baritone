@@ -143,7 +143,7 @@ public class ToolSet {
         possible, this lets us make pathing depend on the actual tool to be used (if auto tool is disabled)
         */
         if (!Baritone.settings().autoTool.value && pathingCalculation) {
-            return player.getInventory().getSelectedSlot();
+            return InventoryHelper.getSelectedSlot(player);
         }
 
         int best = 0;
@@ -153,7 +153,7 @@ public class ToolSet {
         BlockState blockState = b.defaultBlockState();
         for (int i = 0; i < 9; i++) {
             ItemStack itemStack = player.getInventory().getItem(i);
-            if (!Baritone.settings().useSwordToMine.value && itemStack.getItem().components().has(DataComponents.WEAPON)) {
+            if (!Baritone.settings().useSwordToMine.value && itemStack.getItem().toString().contains("sword") /* instanceof net.minecraft.world.item.SwordItem */) {
                 continue;
             }
 

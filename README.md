@@ -12,6 +12,13 @@ A fork of [Baritone](https://github.com/cabaletta/baritone) optimized for seamle
 - **Following**: `#follow entity <name>` - Follow players or entities
 - **Building**: `#build <schematic>` - Automated structure building
 
+### 🎨 Modern Rendering (New in 1.21.11)
+
+- **Smooth Path Splines**: Catmull-Rom interpolation for fluid path visualization
+- **3D Ribbon Rendering**: Solid, camera-facing path ribbons instead of 1px lines
+- **Visual Effects**: Flow animations and gradient support
+- **Stability**: Fixed rendering artifacts ("flying lines") using World Coordinate rendering
+
 ### Meteor Integration Enhancements
 
 - **Settings GUI**: In-game interface for all Baritone settings (no config file editing)

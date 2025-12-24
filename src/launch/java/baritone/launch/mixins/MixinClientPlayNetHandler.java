@@ -80,7 +80,7 @@ public abstract class MixinClientPlayNetHandler extends ClientCommonPacketListen
     }
 
     @Inject(
-            method = "sendChat(Ljava/lang/String;)V",
+            method = "method_45729",
             at = @At("HEAD"),
             cancellable = true
     )
@@ -97,7 +97,7 @@ public abstract class MixinClientPlayNetHandler extends ClientCommonPacketListen
     }
 
     @Inject(
-            method = "handleLevelChunkWithLight",
+            method = "method_11128",
             at = @At("RETURN")
     )
     private void postHandleChunkData(ClientboundLevelChunkWithLightPacket packetIn, CallbackInfo ci) {
@@ -117,7 +117,7 @@ public abstract class MixinClientPlayNetHandler extends ClientCommonPacketListen
     }
 
     @Inject(
-            method = "handleForgetLevelChunk",
+            method = "method_11107",
             at = @At("HEAD")
     )
     private void preChunkUnload(ClientboundForgetLevelChunkPacket packet, CallbackInfo ci) {
@@ -132,7 +132,7 @@ public abstract class MixinClientPlayNetHandler extends ClientCommonPacketListen
     }
 
     @Inject(
-            method = "handleForgetLevelChunk",
+            method = "method_11107",
             at = @At("RETURN")
     )
     private void postChunkUnload(ClientboundForgetLevelChunkPacket packet, CallbackInfo ci) {
@@ -147,7 +147,7 @@ public abstract class MixinClientPlayNetHandler extends ClientCommonPacketListen
     }
 
     @Inject(
-            method = "handleBlockUpdate",
+            method = "method_11136",
             at = @At("RETURN")
     )
     private void postHandleBlockChange(ClientboundBlockUpdatePacket packetIn, CallbackInfo ci) {
@@ -173,7 +173,7 @@ public abstract class MixinClientPlayNetHandler extends ClientCommonPacketListen
     }
 
     @Inject(
-            method = "handleChunkBlocksUpdate",
+            method = "method_11100",
             at = @At("RETURN")
     )
     private void postHandleMultiBlockChange(ClientboundSectionBlocksUpdatePacket packetIn, CallbackInfo ci) {
@@ -196,10 +196,10 @@ public abstract class MixinClientPlayNetHandler extends ClientCommonPacketListen
     }
 
     @Inject(
-            method = "handlePlayerCombatKill",
+            method = "method_34075",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/player/LocalPlayer;shouldShowDeathScreen()Z"
+                    target = "Lnet/minecraft/class_746;method_22419()Z"
             )
     )
     private void onPlayerDeath(ClientboundPlayerCombatKillPacket packetIn, CallbackInfo ci) {

@@ -25,15 +25,19 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.Property;
 import org.apache.commons.lang3.Validate;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -58,13 +62,15 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @return Array of subregion tags.
      */
     private static CompoundTag[] getRegions(CompoundTag nbt) {
-        return nbt.getCompound("Regions")
-            .map(CompoundTag::values)
-            .map(r -> r.stream()
-                .filter(v -> v instanceof CompoundTag)
-                .map(CompoundTag.class::cast)
-                .toArray(CompoundTag[]::new)
-            ).orElse(new CompoundTag[0]);
+        CompoundTag regions = nbt.getCompound("Regions").orElse(new CompoundTag());
+        java.util.List<CompoundTag> regionTags = new java.util.ArrayList<>();
+        for (String key : regions.keySet()) {
+             net.minecraft.nbt.Tag tag = regions.get(key);
+             if (tag instanceof CompoundTag ct) {
+                 regionTags.add(ct);
+             }
+        }
+        return regionTags.toArray(new CompoundTag[0]);
     }
 
     /**
@@ -74,10 +80,11 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
      * @return the lower coord of the requested axis.
      */
     private static int getMinOfSubregion(CompoundTag subReg, String s) {
-        int a = subReg.getCompound("Position").flatMap(position -> position.getInt(s)).orElse(0);
-        int b = subReg.getCompound("Size").flatMap(size -> size.getInt(s)).orElse(0);
+        int a = subReg.getCompound("Position").orElse(new CompoundTag()).getInt("x").orElse(0) - subReg.getCompound("Size").orElse(new CompoundTag()).getInt("x").orElse(0) + 1;
+        int b = subReg.getCompound("Position").orElse(new CompoundTag()).getInt("z").orElse(0) - subReg.getCompound("Size").orElse(new CompoundTag()).getInt("z").orElse(0) + 1;
         return Math.min(a, a + b + 1);
     }
+
 
     /**
      * @param blockStatePalette List of all different block types used in the schematic.
@@ -88,7 +95,7 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
 
         for (int i = 0; i < blockStatePalette.size(); i++) {
             CompoundTag tag = (CompoundTag) blockStatePalette.get(i);
-            ResourceLocation blockKey = ResourceLocation.tryParse(tag.getString("Name").orElse(""));
+            Identifier blockKey = Identifier.tryParse(tag.getString("Name").orElse(""));
             Block block = blockKey == null
                 ? Blocks.AIR
                 : BuiltInRegistries.BLOCK.get(blockKey)
@@ -110,10 +117,12 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         BlockState blockState = block.defaultBlockState();
 
         for (String key : properties.keySet()) {
-            Property<?> property = block.getStateDefinition().getProperty(key);
-            String propertyValue = properties.getString(key).orElse(null);
-            if (property != null) {
-                blockState = setPropertyValue(blockState, property, propertyValue);
+            if (properties.contains(key)) {
+                Property<?> property = block.getStateDefinition().getProperty(key);
+                String propertyValue = properties.getString(key).orElse("");
+                if (property != null) {
+                    blockState = setPropertyValue(blockState, property, propertyValue);
+                }
             }
         }
         return blockState;
@@ -168,15 +177,22 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
     private void fillInSchematic(CompoundTag nbt) {
         Vec3i offsetMinCorner = new Vec3i(getMinOfSchematic(nbt, "x"), getMinOfSchematic(nbt, "y"), getMinOfSchematic(nbt, "z"));
         for (CompoundTag subReg : getRegions(nbt)) {
-            ListTag usedBlockTypes = subReg.getListOrEmpty("BlockStatePalette");
-            BlockState[] blockList = getBlockList(usedBlockTypes);
+            Optional<ListTag> usedBlockTypesOpt = subReg.getList("BlockStatePalette");
+            if (usedBlockTypesOpt.isEmpty()) continue;
+            ListTag usedBlockTypes = usedBlockTypesOpt.get();
+            List<BlockState> palette = new ArrayList<>();
+            for (int i = 0; i < usedBlockTypes.size(); i++) {
+                CompoundTag tag = usedBlockTypes.getCompound(i).orElse(new CompoundTag());
+                BlockState state = NbtUtils.readBlockState(BuiltInRegistries.BLOCK, tag);
+                palette.add(state);
+            }
 
-            int bitsPerBlock = getBitsPerBlock(usedBlockTypes.size());
+            int bitsPerBlock = getBitsPerBlock(palette.size());
             long regionVolume = getVolume(subReg);
             long[] blockStateArray = subReg.getLongArray("BlockStates").orElse(new long[0]);
 
             LitematicaBitArray bitArray = new LitematicaBitArray(bitsPerBlock, regionVolume, blockStateArray);
-            writeSubregionIntoSchematic(subReg, offsetMinCorner, blockList, bitArray);
+            writeSubregionIntoSchematic(subReg, offsetMinCorner, palette.toArray(new BlockState[0]), bitArray);
         }
     }
 

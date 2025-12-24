@@ -23,12 +23,12 @@ import net.minecraft.world.level.chunk.Palette;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(targets = "net/minecraft/world/level/chunk/PalettedContainer$Data")
+@Mixin(targets = "net.minecraft.class_2841$class_6561")
 public abstract class MixinPalettedContainer$Data<T> implements IData<T> {
 
-    @Accessor
+    @Accessor("comp_119")
     public abstract Palette<T> getPalette();
 
-    @Accessor
+    @Accessor("comp_118")
     public abstract BitStorage getStorage();
 }

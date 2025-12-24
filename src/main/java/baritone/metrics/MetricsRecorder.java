@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 import baritone.api.utils.IPlayerContext;
+import net.minecraft.resources.ResourceKey;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -128,7 +129,7 @@ public final class MetricsRecorder {
         if (ctx != null) {
             try {
                 if (ctx.player() != null) {
-                    obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                    obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                     obj.addProperty("creative", ctx.player().getAbilities().instabuild);
                 }
 

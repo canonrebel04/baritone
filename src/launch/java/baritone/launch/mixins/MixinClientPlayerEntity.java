@@ -59,26 +59,12 @@ public class MixinClientPlayerEntity {
         }
     }
 
-    @Inject(
-            method = "tick",
-            at = @At(
-                    value = "INVOKE",
-                    target = "net/minecraft/client/player/AbstractClientPlayer.tick()V",
-                    shift = At.Shift.AFTER
-            )
-    )
-    private void onPreUpdate(CallbackInfo ci) {
-        IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer((LocalPlayer) (Object) this);
-        if (baritone != null) {
-            baritone.getGameEventHandler().onPlayerUpdate(new PlayerUpdateEvent(EventState.PRE));
-        }
-    }
 
     @Redirect(
-            method = "aiStep",
+            method = "method_6007",
             at = @At(
                     value = "FIELD",
-                    target = "net/minecraft/world/entity/player/Abilities.mayfly:Z"
+                    target = "Lnet/minecraft/class_1656;field_7478:Z"
             )
     )
     @Group(name = "mayFly", min = 1, max = 1)
@@ -90,11 +76,12 @@ public class MixinClientPlayerEntity {
         return !baritone.getPathingBehavior().isPathing() && capabilities.mayfly;
     }
 
+    /*
     @Redirect(
-        method = "aiStep",
+        method = "method_6007",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/player/LocalPlayer;mayFly()Z"
+            target = "Lnet/minecraft/class_746;mayFly()Z"
         )
     )
     @Group(name = "mayFly", min = 1, max = 1)
@@ -105,12 +92,13 @@ public class MixinClientPlayerEntity {
         }
         return !baritone.getPathingBehavior().isPathing() && (boolean) MAY_FLY.invokeExact(instance);
     }
+    */
 
     @Redirect(
-            method = "aiStep",
+            method = "method_6007",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/world/entity/player/Input;sprint()Z"
+                    target = "Lnet/minecraft/class_10185;comp_3165()Z"
             )
     )
     private boolean redirectSprintInput(final Input instance) {
@@ -131,7 +119,7 @@ public class MixinClientPlayerEntity {
     }
 
     @Inject(
-            method = "rideTick",
+            method = "method_5842",
             at = @At(
                     value = "HEAD"
             )
@@ -144,10 +132,10 @@ public class MixinClientPlayerEntity {
     }
 
     @Redirect(
-            method = "aiStep",
+            method = "method_6007",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/player/LocalPlayer;tryToStartFallFlying()Z"
+                    target = "Lnet/minecraft/class_746;method_23668()Z"
             )
     )
     private boolean tryToStartFallFlying(final LocalPlayer instance) {

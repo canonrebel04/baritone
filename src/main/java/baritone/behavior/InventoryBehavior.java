@@ -20,7 +20,9 @@ package baritone.behavior;
 import baritone.Baritone;
 import baritone.api.event.events.TickEvent;
 import baritone.api.utils.Helper;
+import baritone.utils.InventoryHelper;
 import baritone.utils.ToolSet;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -93,7 +95,7 @@ public final class InventoryBehavior extends Behavior implements Helper {
         // we're using 0 and 8 for pickaxe and throwaway
         ArrayList<Integer> candidates = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
-            if (ctx.player().getInventory().getNonEquipmentItems().get(i).isEmpty() && !disallowedHotbar.test(i)) {
+            if (ctx.player().getInventory().getItem(i).isEmpty() && !disallowedHotbar.test(i)) {
                 candidates.add(i);
             }
         }
@@ -127,9 +129,8 @@ public final class InventoryBehavior extends Behavior implements Helper {
     }
 
     private int firstValidThrowaway() { // TODO offhand idk
-        NonNullList<ItemStack> invy = ctx.player().getInventory().getNonEquipmentItems();
-        for (int i = 0; i < invy.size(); i++) {
-            if (Baritone.settings().acceptableThrowawayItems.value.contains(invy.get(i).getItem())) {
+        for (int i = 0; i < 36; i++) {
+            if (Baritone.settings().acceptableThrowawayItems.value.contains(ctx.player().getInventory().getItem(i).getItem())) {
                 return i;
             }
         }
@@ -137,11 +138,10 @@ public final class InventoryBehavior extends Behavior implements Helper {
     }
 
     private int bestToolAgainst(Block against) {
-        NonNullList<ItemStack> invy = ctx.player().getInventory().getNonEquipmentItems();
         int bestInd = -1;
         double bestSpeed = -1;
-        for (int i = 0; i < invy.size(); i++) {
-            ItemStack stack = invy.get(i);
+        for (int i = 0; i < 36; i++) {
+            ItemStack stack = ctx.player().getInventory().getItem(i);
             if (stack.isEmpty()) {
                 continue;
             }
@@ -190,9 +190,8 @@ public final class InventoryBehavior extends Behavior implements Helper {
 
     public boolean throwaway(boolean select, Predicate<? super ItemStack> desired, boolean allowInventory) {
         LocalPlayer p = ctx.player();
-        NonNullList<ItemStack> inv = p.getInventory().getNonEquipmentItems();
         for (int i = 0; i < 9; i++) {
-            ItemStack item = inv.get(i);
+            ItemStack item = p.getInventory().getItem(i);
             // this usage of settings() is okay because it's only called once during pathing
             // (while creating the CalculationContext at the very beginning)
             // and then it's called during execution
@@ -200,7 +199,7 @@ public final class InventoryBehavior extends Behavior implements Helper {
             // acceptableThrowawayItems to the CalculationContext
             if (desired.test(item)) {
                 if (select) {
-                    p.getInventory().setSelectedSlot(i);
+                    InventoryHelper.setSelectedSlot(p, i);
                 }
                 return true;
             }
@@ -212,10 +211,10 @@ public final class InventoryBehavior extends Behavior implements Helper {
             // so we need to select in the main hand something that doesn't right click
             // so not a shovel, not a hoe, not a block, etc
             for (int i = 0; i < 9; i++) {
-                ItemStack item = inv.get(i);
+                ItemStack item = p.getInventory().getItem(i);
                 if (item.isEmpty() || item.getItem().components().has(DataComponents.TOOL)) {
                     if (select) {
-                        p.getInventory().setSelectedSlot(i);
+                        InventoryHelper.setSelectedSlot(p, i);
                     }
                     return true;
                 }
@@ -224,10 +223,10 @@ public final class InventoryBehavior extends Behavior implements Helper {
 
         if (allowInventory) {
             for (int i = 9; i < 36; i++) {
-                if (desired.test(inv.get(i))) {
+                if (desired.test(p.getInventory().getItem(i))) {
                     if (select) {
                         requestSwapWithHotBar(i, 7);
-                        p.getInventory().setSelectedSlot(7);
+                        InventoryHelper.setSelectedSlot(p, 7);
                     }
                     return true;
                 }

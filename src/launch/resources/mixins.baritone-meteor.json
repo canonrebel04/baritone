@@ -11,6 +11,7 @@
     "MixinChunkArray",
     "MixinClientChunkProvider",
     "MixinClientPlayerEntity",
+    "MixinAbstractClientPlayer",
     "MixinClientPlayNetHandler",
     "MixinCommandSuggestionHelper",
     "MixinEntity",
@@ -25,11 +26,9 @@
     "MixinPalettedContainer",
     "MixinPalettedContainer$Data",
     "MixinPlayerController",
-    "MixinRenderPipelines",
     "MixinScreen",
     "MixinWorldRenderer"
   ],
-  "mixins": [
-  ],
+  "mixins": [],
   "plugin": "baritone.launch.FabricMixinPlugin"
 }

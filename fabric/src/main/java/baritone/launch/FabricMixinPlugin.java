@@ -28,17 +28,8 @@ import java.util.Set;
 public class FabricMixinPlugin implements IMixinConfigPlugin {
     private static final String mixinPackage = "baritone.launch.mixins";
 
-    private static boolean loaded;
-
-    private static boolean isBaritonePresent;
-
     @Override
     public void onLoad(String mixinPackage) {
-        if (loaded) return;
-
-        isBaritonePresent = FabricLoader.getInstance().isModLoaded("baritone");
-
-        loaded = true;
     }
 
     @Override
@@ -48,11 +39,7 @@ public class FabricMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (!mixinClassName.startsWith(mixinPackage)) {
-            throw new RuntimeException("Mixin " + mixinClassName + " is not in the mixin package");
-        } else {
-            return !isBaritonePresent;
-        }
+        return true;
     }
 
     @Override

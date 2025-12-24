@@ -63,21 +63,8 @@ public class MixinMinecraft {
     }
 
     @Inject(
-            method = "tick",
-            at = @At(
-                    value = "FIELD",
-                    opcode = Opcodes.GETFIELD,
-                    target = "net/minecraft/client/Minecraft.screen:Lnet/minecraft/client/gui/screens/Screen;",
-                    ordinal = 0,
-                    shift = At.Shift.BEFORE
-            ),
-            slice = @Slice(
-                    from = @At(
-                            value = "FIELD",
-                            opcode = Opcodes.PUTFIELD,
-                            target = "net/minecraft/client/Minecraft.missTime:I"
-                    )
-            )
+            method = "method_1574",
+            at = @At("HEAD")
     )
     private void runTick(CallbackInfo ci) {
         this.tickProvider = TickEvent.createNextProvider();
@@ -91,7 +78,7 @@ public class MixinMinecraft {
     }
 
     @Inject(
-            method = "tick",
+            method = "method_1574",
             at = @At("RETURN")
     )
     private void postRunTick(CallbackInfo ci) {
@@ -110,10 +97,10 @@ public class MixinMinecraft {
     }
 
     @Inject(
-            method = "tick",
+            method = "method_1574",
             at = @At(
                     value = "INVOKE",
-                    target = "net/minecraft/client/multiplayer/ClientLevel.tickEntities()V",
+                    target = "Lnet/minecraft/class_638;method_18116()V",
                     shift = At.Shift.AFTER
             )
     )
@@ -163,16 +150,16 @@ public class MixinMinecraft {
     }
 
     @Redirect(
-            method = "tick",
+            method = "method_1574",
             at = @At(
                     value = "FIELD",
                     opcode = Opcodes.GETFIELD,
-                    target = "Lnet/minecraft/client/Minecraft;screen:Lnet/minecraft/client/gui/screens/Screen;"
+                    target = "Lnet/minecraft/class_310;field_1755:Lnet/minecraft/class_437;"
             ),
             slice = @Slice(
                     from = @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/client/gui/components/DebugScreenOverlay;showDebugScreen()Z"
+                            target = "Lnet/minecraft/class_340;method_53536()Z"
                     ),
                     to = @At(
                             value = "CONSTANT",

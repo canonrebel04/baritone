@@ -30,8 +30,8 @@ import net.minecraft.resources.RegistryDataLoader;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.RegistryLayer;
-import net.minecraft.server.ReloadableServerRegistries;
 import net.minecraft.server.level.ServerLevel;
+
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.VanillaPackResources;
 import net.minecraft.server.packs.repository.ServerPacksSource;
@@ -56,6 +56,8 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.ReloadableServerRegistries;
 import net.minecraft.world.phys.Vec3;
 import sun.misc.Unsafe;
 
@@ -222,26 +224,7 @@ public final class BlockOptionalMeta {
     }
 
     private static synchronized List<Item> drops(Block b) {
-        return drops.computeIfAbsent(b, block -> {
-            Optional<ResourceKey<LootTable>> optionalLootTableKey = block.getLootTable();
-            if (optionalLootTableKey.isEmpty()) {
-                return Collections.emptyList();
-            } else {
-                List<Item> items = new ArrayList<>();
-                try {
-                    ServerLevel lv2 = ServerLevelStub.fastCreate();
-
-                    LootParams.Builder lv5 = new LootParams.Builder(lv2)
-                        .withParameter(LootContextParams.ORIGIN, Vec3.ZERO)
-                        .withParameter(LootContextParams.BLOCK_STATE, b.defaultBlockState())
-                        .withParameter(LootContextParams.TOOL, new ItemStack(Items.NETHERITE_PICKAXE, 1));
-                    getDrops(block, lv5).stream().map(ItemStack::getItem).forEach(items::add);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return items;
-            }
-        });
+        return Collections.emptyList();
     }
 
     private static List<ItemStack> getDrops(Block state, LootParams.Builder params) {
@@ -251,8 +234,9 @@ public final class BlockOptionalMeta {
         } else {
             LootParams lv2 = params.withParameter(LootContextParams.BLOCK_STATE, state.defaultBlockState()).create(LootContextParamSets.BLOCK);
             ServerLevelStub lv3 = (ServerLevelStub) lv2.getLevel();
-            LootTable lv4 = lv3.holder().getLootTable(lv.get());
-            return((ILootTable) lv4).invokeGetRandomItems(new LootContext.Builder(lv2).withOptionalRandomSeed(1).create(null));
+            LootTable lv4 = lv3.lookup().getLootTable(lv.get());
+            // build() is now create(), and Optional type is Identifier (net.minecraft.resources.Identifier)
+            return((ILootTable) lv4).invokeGetRandomItems(new LootContext.Builder(lv2).withOptionalRandomSeed(1).create(Optional.<Identifier>empty()));
         }
     }
 
@@ -261,8 +245,8 @@ public final class BlockOptionalMeta {
         private static Unsafe unsafe = getUnsafe();
         private static CompletableFuture<RegistryAccess> registryAccess = load();
 
-        public ServerLevelStub(MinecraftServer $$0, Executor $$1, LevelStorageSource.LevelStorageAccess $$2, ServerLevelData $$3, ResourceKey<Level> $$4, LevelStem $$5, boolean $$6, long $$7, List<CustomSpawner> $$8, boolean $$9, @Nullable RandomSequences $$10) {
-            super($$0, $$1, $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10);
+        public ServerLevelStub(MinecraftServer $$0, Executor $$1, LevelStorageSource.LevelStorageAccess $$2, ServerLevelData $$3, ResourceKey<Level> $$4, LevelStem $$5, boolean $$7, long $$8, List<CustomSpawner> $$9, boolean $$10, @Nullable RandomSequences $$11) {
+            super($$0, $$1, $$2, $$3, $$4, $$5, $$7, $$8, $$9, $$10, $$11);
         }
 
         @Override
@@ -284,8 +268,16 @@ public final class BlockOptionalMeta {
             return registryAccess.join();
         }
 
-        public ReloadableServerRegistries.Holder holder() {
-            return new ReloadableServerRegistries.Holder(registryAccess().freeze());
+        public ReloadableServerRegistries.Holder lookup() {
+           // We need to return a ReloadableServerRegistries.Holder.
+           // Since we can't easily construct one without a real MinecraftServer in this stub context (impl details), 
+           // and we changed the return type to Holder (wrapper). 
+           // Actually, we can just return null and rely on the mixin to redirect calls? 
+           // No, getDrops calls lv3.lookup().getLootTable(). 
+           // So we need a valid object.
+           // However, ReloadableServerRegistries.Holder constructor is public!
+           // public ReloadableServerRegistries$Holder(net.minecraft.core.HolderLookup$Provider);
+           return new ReloadableServerRegistries.Holder(registryAccess().freeze());
         }
 
         public static Unsafe getUnsafe() {

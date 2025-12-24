@@ -34,7 +34,7 @@ import baritone.command.argument.ArgConsumer;
 import baritone.command.argument.CommandArguments;
 import baritone.command.manager.CommandManager;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
@@ -78,13 +78,13 @@ public class ExampleBaritoneControl extends Behavior implements Helper {
             String msg = command + rest;
             String toDisplay = settings.censorRanCommands.value ? command + " ..." : msg;
             MutableComponent component = Component.literal(String.format("> %s", toDisplay));
-            component.setStyle(component.getStyle()
-                    .withColor(ChatFormatting.WHITE)
+            MutableComponent chat = Component.literal("Click to pause/unpause");
+            chat.setStyle(chat.getStyle()
                     .withHoverEvent(new HoverEvent.ShowText(
-                            Component.literal("Click to rerun command")
+                            Component.literal("Clicking this will toggle " + (BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().isPathing() ? "pause" : "resume"))
                     ))
                     .withClickEvent(new ClickEvent.RunCommand(
-                            FORCE_COMMAND_PREFIX + msg
+                            FORCE_COMMAND_PREFIX + (BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().isPathing() ? "pause" : "resume")
                     )));
             logDirect(component);
         }

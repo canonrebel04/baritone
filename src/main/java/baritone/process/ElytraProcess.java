@@ -192,7 +192,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                 obj.addProperty("id", id);
 
                 if (ctx.player() != null) {
-                    obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                    obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                     obj.addProperty("creative", ctx.player().getAbilities().instabuild);
                 }
 
@@ -271,7 +271,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                     } else if (ctx.player().isDeadOrDying()) {
                         this.metricsAttemptLostControlSource = "dead";
                     } else if (this.metricsAttemptStartDimension != null
-                        && !this.metricsAttemptStartDimension.equals(String.valueOf(ctx.player().level().dimension().location()))) {
+                        && !this.metricsAttemptStartDimension.equals(String.valueOf(ctx.player().level().dimension().toString()))) {
                         this.metricsAttemptLostControlSource = "leftDimension";
                     } else if (this.metricsAttemptGlideTicks > 0 && !ctx.player().isFallFlying()) {
                         // We were gliding for at least one tick, then stopped.
@@ -430,7 +430,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                     this.onLostControl();
                     if (ctx.world() instanceof ClientLevel clientLevel) {
                         metricsFinish(true, "disconnectOnArrival");
-                        clientLevel.disconnect(Component.literal("[Baritone] Arrived at goal!"));
+                        ctx.minecraft().getConnection().getConnection().disconnect(Component.literal("Disconnecting"));
                     }
                     return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
                 }
@@ -705,7 +705,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         this.metricsAttemptActive = true;
         this.metricsAttemptStartNanos = System.nanoTime();
         this.metricsAttemptDestination = destination;
-        this.metricsAttemptStartDimension = ctx.player() != null ? String.valueOf(ctx.player().level().dimension().location()) : null;
+        this.metricsAttemptStartDimension = ctx.player() != null ? String.valueOf(ctx.player().level().dimension().toString()) : null;
         final int id = ++this.metricsAttemptSeq;
 
         this.metricsAttemptStartPos = ctx.player() != null ? ctx.player().position() : null;
@@ -738,7 +738,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             obj.addProperty("id", id);
 
             if (ctx.player() != null) {
-                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                 obj.addProperty("creative", ctx.player().getAbilities().instabuild);
             }
 
@@ -844,7 +844,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             obj.addProperty("id", id);
 
             if (ctx.player() != null) {
-                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().location()));
+                obj.addProperty("dimension", String.valueOf(ctx.player().level().dimension().toString()));
                 obj.addProperty("creative", ctx.player().getAbilities().instabuild);
             }
 

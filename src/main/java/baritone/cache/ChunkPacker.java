@@ -167,15 +167,18 @@ public final class ChunkPacker {
                 return Blocks.LAVA.defaultBlockState();
             case SOLID:
                 // Dimension solid types
+                /*
                 if (dimension.natural()) {
                     return Blocks.STONE.defaultBlockState();
                 }
-                if (dimension.ultraWarm()) {
+                if (dimension.ultrawarm()) {
                     return Blocks.NETHERRACK.defaultBlockState();
                 }
-                if (dimension.effectsLocation().equals(BuiltinDimensionTypes.END_EFFECTS)) {
+                if (dimension.effects().getPath().equals("the_end")) {
                     return Blocks.END_STONE.defaultBlockState();
                 }
+                */
+                return Blocks.STONE.defaultBlockState();
             default:
                 return null;
         }

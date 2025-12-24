@@ -9,6 +9,10 @@
 
 -optimizationpasses 5
 -verbose
+-ignorewarnings
+-dontoptimize
+-dontshrink
+# -dontpreverify
 
 -allowaccessmodification # anything not kept can be changed from public to private and inlined etc
 -overloadaggressively
@@ -26,6 +30,15 @@
 -dontwarn baritone.launch.BaritoneForgeModXD
 # progard doesn't like signature polymorphism
 -dontwarn java.lang.invoke.MethodHandle
+
+# Minecraft dependencies and unshaded libraries
+-dontwarn net.minecraft.**
+-dontwarn com.mojang.**
+-dontwarn org.apache.logging.log4j.**
+-dontwarn oshi.**
+-dontwarn it.unimi.dsi.fastutil.**
+-dontwarn com.google.common.**
+-dontwarn com.google.gson.**
 
 # please do not change the comment below
 -keep class baritone.api.** { *; } # this is the keep api
@@ -352,3 +365,4 @@
     public java.lang.String substring(int);
     public java.lang.String substring(int,int);
 }
+-dontpreverify
