@@ -15,26 +15,16 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+plugins {
+    id "xyz.wagyourtail.unimined" apply false
+    id "com.github.johnrengelman.shadow" apply false
+}
+
 allprojects {
-    apply plugin: 'java'
-    apply plugin: "xyz.wagyourtail.unimined"
+    apply plugin: 'java-library'
     apply plugin: "maven-publish"
 
     archivesBaseName = rootProject.archives_base_name
-
-    /*def vers = ""
-    try {
-        vers = 'git describe --always --tags --first-parent --dirty'.execute().text.trim()
-    } catch (Exception e) {
-        println "Version detection failed: " + e
-    }
-    if (!vers.startsWith("v")) {
-        println "using version number: " + rootProject.mod_version
-        version = rootProject.mod_version
-    } else {
-        version = vers.substring(1)
-        println "Detected version " + version
-    }*/
 
     version = rootProject.mod_version
     group = rootProject.maven_group
@@ -64,7 +54,6 @@ allprojects {
             name = "ldtteam"
             url = "https://maven.parchmentmc.net/"
         }
-        // for the newer version of launchwrapper
         maven {
             name = "multimc-maven"
             url = "https://files.multimc.org/maven/"
@@ -84,20 +73,7 @@ allprojects {
         compileOnly "org.ow2.asm:asm:${project.asm_version}"
 
         implementation "dev.babbaj:nether-pathfinder:${project.nether_pathfinder_version}"
-
         implementation 'com.google.code.findbugs:jsr305:3.0.2'
-    }
-
-    unimined.minecraft(sourceSets.main, true) {
-        version rootProject.minecraft_version
-
-        mappings {
-            intermediary()
-            mojmap()
-            parchment("1.21.4", "2025.03.23")
-
-            devFallbackNamespace "official"
-        }
     }
 
     tasks.withType(JavaCompile).configureEach {
@@ -110,52 +86,16 @@ allprojects {
     }
 }
 
-unimined.minecraft {
-    runs.off = true
-    defaultRemapJar = false
-}
+// Subprojects (api, launch, schematica-api) have their own build.gradle files now.
 
-archivesBaseName = archivesBaseName + "-common"
-
-sourceSets {
-    api {
-        compileClasspath += main.compileClasspath
-        runtimeClasspath += main.runtimeClasspath
-    }
-    main {
-        compileClasspath += api.output
-        runtimeClasspath += api.output
-    }
-    test {
-        compileClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-        runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-    }
-    launch {
-        compileClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-        runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-    }
-    schematica_api {
-        compileClasspath += main.compileClasspath
-        runtimeClasspath += main.runtimeClasspath
-    }
-    main {
-        compileClasspath += schematica_api.output
-        runtimeClasspath += schematica_api.output
-    }
-}
-
+// Root project specific
 dependencies {
+    implementation project(":api")
+    implementation project(":schematica-api")
+
     testImplementation 'junit:junit:4.13.2'
 }
 
 jar {
-    from sourceSets.main.output, sourceSets.launch.output, sourceSets.api.output
-}
-
-javadoc {
-    options.addStringOption('Xwerror', '-quiet') // makes the build fail on travis when there is a javadoc error
-    options.linkSource true
-    options.encoding "UTF-8" // allow emoji in comments :^)
-    source = sourceSets.api.allJava
-    classpath += sourceSets.api.compileClasspath
+    from sourceSets.main.output
 }
