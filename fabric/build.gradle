@@ -46,8 +46,8 @@ configurations {
 dependencies {
     implementation project(":core")
     implementation project(":launch")
-    common project(":core")
-    common project(":launch")
+    shadowCommon project(":core")
+    shadowCommon project(":launch")
 
     add("include", "dev.babbaj:nether-pathfinder:${project.nether_pathfinder_version}")
     implementation "dev.babbaj:nether-pathfinder:${project.nether_pathfinder_version}"

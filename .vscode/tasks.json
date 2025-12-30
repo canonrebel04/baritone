@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Deploy Baritone to Prism",
+            "type": "shell",
+            "command": "./scripts/deploy.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Runs scripts/deploy.sh to build and deploy Baritone."
+        }
+    ]
+}
